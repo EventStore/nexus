@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package acceptor;
+option go_package = "github.com/EventStore/bespin/svc/acceptor_v1/proto";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+message Event {
+    string xid = 1;
+    string org_xid = 2;
+    string project_xid = 3;
+    string correlation_xid = 4;
+
+    string spec_version = 5;
+    string type = 6;
+    string source = 7;
+    string subject = 8;
+    google.protobuf.Timestamp time = 9;
+
+    string data_schema = 10;
+    oneof data {
+        Issue i = 100;
+        Notification n = 101;
+        AgentHello ah = 102;
+        AgentCommand ac = 1002;
+    }
+}
+
+message AgentHello {}
+
+message AgentCommand {
+    string operation = 1;
+}
+
+message Issue {
+    string type = 1;
+    string state = 2;
+    string severity = 3;
+    string title = 4;
+    string message = 5;
+}
+
+message Notification {
+    string state = 1;
+    string level = 2;
+    string title = 3;
+    string message = 4;
+}
+
+
+service AgentAcceptor {
+  rpc ControlPlane(stream Event) returns (stream Event);
+  rpc EventSink(stream Event) returns (google.protobuf.Empty);
+}
