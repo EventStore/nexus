@@ -13,6 +13,10 @@
 
 #[macro_use]
 extern crate tracing;
+#[macro_use]
+extern crate derivative;
+#[macro_use]
+extern crate pest_derive;
 
 mod buffers;
 mod conditions;
@@ -24,8 +28,11 @@ mod serde;
 mod topology;
 #[macro_use]
 mod internal_events;
+mod heartbeat;
 mod http;
+mod line_agg;
 mod mapping;
+mod pipeline;
 mod shutdown;
 mod sink;
 mod sinks;
