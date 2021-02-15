@@ -18,6 +18,10 @@ extern crate derivative;
 #[macro_use]
 extern crate pest_derive;
 
+#[cfg(feature = "jemallocator")]
+#[global_allocator]
+static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+
 mod buffers;
 mod conditions;
 #[macro_use]
@@ -40,6 +44,7 @@ mod sources;
 mod stream;
 mod tcp;
 mod template;
+mod test_util;
 mod tls;
 mod trace;
 mod transforms;
@@ -53,6 +58,56 @@ pub use pipeline::Pipeline;
 pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+pub fn vector_version() -> impl std::fmt::Display {
+    #[cfg(feature = "nightly")]
+    let pkg_version = format!("{}-nightly", built_info::PKG_VERSION);
+
+    #[cfg(not(feature = "nightly"))]
+    let pkg_version = built_info::PKG_VERSION;
+
+    pkg_version
+}
+
+pub fn get_version() -> String {
+    let pkg_version = vector_version();
+    let commit_hash = built_info::GIT_VERSION.and_then(|v| v.split('-').last());
+    let built_date = chrono::DateTime::parse_from_rfc2822(built_info::BUILT_TIME_UTC)
+        .unwrap()
+        .format("%Y-%m-%d");
+    let built_string = if let Some(commit_hash) = commit_hash {
+        format!("{} {} {}", commit_hash, built_info::TARGET, built_date)
+    } else {
+        built_info::TARGET.into()
+    };
+    format!("{} ({})", pkg_version, built_string)
+}
+
+#[allow(unused)]
+mod built_info {
+    include!(concat!(env!("OUT_DIR"), "/built.rs"));
+}
+
+pub fn get_hostname() -> std::io::Result<String> {
+    Ok(hostname::get()?.to_string_lossy().into())
+}
+
+// This is a private implementation of the unstable `bool_to_option`
+// feature. This can be removed once this stabilizes:
+// https://github.com/rust-lang/rust/issues/64260
+trait BoolAndSome {
+    fn and_some<T>(self, value: T) -> Option<T>;
+}
+
+impl BoolAndSome for bool {
+    fn and_some<T>(self, value: T) -> Option<T> {
+        if self {
+            Some(value)
+        } else {
+            None
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {

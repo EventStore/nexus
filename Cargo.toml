@@ -6,6 +6,21 @@ edition = "2018"
 publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[workspace]
+members = [
+    ".",
+    "lib/shared",
+#    "lib/file-source",
+    "lib/tracing-limit",
+#    "lib/vector-wasm",
+#    "lib/k8s-test-framework",
+#    "lib/k8s-e2e-tests",
+#    "lib/prometheus-parser",
+#    "lib/vector-api-client",
+    "lib/remap-lang",
+#    "lib/remap-cli",
+    "lib/remap-functions",
+]
 
 [dependencies]
 tracing = "0.1.15"
@@ -80,12 +95,29 @@ structopt = "0.3.21"
 cidr-utils = "0.5.0"
 derive_is_enum_variant = "0.1.1"
 exitcode = "1.1.2"
+portpicker = "0.1.0"
+rand = { version = "0.7.3", features = ["small_rng"] }
+rand_distr = "0.3.0"
+percent-encoding = "2.1.0"
+tokio-openssl = "0.4.0"
+colored = "2.0"
+getset = "0.1.1"
+anyhow = "1.0.37"
+dyn-clone = "1.0.3"
+hostname = "0.3.1"
+base64 = { version = "0.13.0" }
+itertools = { version = "0.9.0", optional = true }
+#vector-api-client = { path = "lib/vector-api-client", optional = true }
+num-format = { version = "0.4.0", optional = true }
+number_prefix = { version = "0.4", optional = true }
+jemallocator = { version = "0.3.0", optional = true }
 
 # Internal
 shared = { path = "lib/shared" }
 tracing-limit = { path = "lib/tracing-limit" }
 
 [target.'cfg(unix)'.dependencies]
+atty = "0.2"
 nix = "0.19.0"
 
 [build-dependencies]
@@ -112,4 +144,51 @@ reqwest = { version = "0.10.9", features = ["json"] }
 rusty-fork = "0.3.0"
 
 [features]
-default = []
+default = ["api", "api-client", "sources", "transforms", "sinks", "vendor-all", "unix"]
+default-cmake = ["api", "api-client", "sources", "transforms", "sinks", "vendor-all", "unix"]
+# Enables features that work only on systems providing `cfg(unix)`
+unix = ["jemallocator"]
+# These are **very** useful on Cross compilations!
+vendor-all = ["vendor-sasl", "vendor-openssl", "vendor-libz"]
+vendor-sasl = []
+vendor-openssl = ["openssl/vendored"]
+vendor-libz = ["libz-sys/static"]
+
+api = [
+#    "async-graphql",
+#    "async-graphql-warp",
+    "itertools"
+]
+
+# API client
+api-client = [
+#    "vector-api-client",
+    "num-format",
+    "number_prefix",
+#    "crossterm",
+#    "tui",
+]
+
+sources = []
+sinks = []
+transforms = []
+cloud = []
+
+# Target specific release features.
+# The `make` tasks will select this according to the appropriate triple.
+# Use this section to turn off or on specific features for specific triples.
+target-x86_64-unknown-linux-gnu = ["api", "api-client", "sources", "transforms", "sinks", "vendor-all", "unix"]
+#default = []
+
+[patch.'https://github.com/tower-rs/tower']
+tower-layer = "0.3"
+
+[patch.crates-io]
+# TODO: update to next 0.12.x (after 0.12.0, if any)
+#avro-rs = { version = "0.12.0", git = "https://github.com/flavray/avro-rs", rev = "f28acbbb9860bd62cb24ead83878d7526d075454", optional = true }
+# Not maintained, our branch update `sync` and `quote` crates: https://github.com/fitzgen/derive_is_enum_variant/pull/3
+derive_is_enum_variant = { version = "0.1.1", git = "https://github.com/timberio/derive_is_enum_variant", rev = "e4550f8ca1366823b8366f0126a7d00ee8ffb080" }
+# TODO: update to the next 0.13.x (after 0.13.9, if any) or 0.14 (or higher)
+hyper = { version = "0.13", git = "https://github.com/hyperium/hyper", rev = "a00cc20afc597cb55cbc62c70b0b25b46c82a0a6" }
+# Not maintained, our branch update `rand` crate: https://github.com/Dentosal/portpicker-rs/pull/3
+portpicker = { version = "0.1.0", git = "https://github.com/timberio/portpicker-rs", rev = "d15829e906516720881584ff3301a0dd04218fbb" }
