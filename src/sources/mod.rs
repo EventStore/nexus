@@ -42,7 +42,7 @@ pub mod journald;
 // #[cfg(feature = "sources-socket")]
 pub mod socket;
 // #[cfg(feature = "sources-splunk_hec")]
-// pub mod splunk_hec;
+pub mod splunk_hec;
 // #[cfg(feature = "sources-statsd")]
 // pub mod statsd;
 // #[cfg(feature = "sources-stdin")]

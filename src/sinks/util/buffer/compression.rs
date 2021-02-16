@@ -43,7 +43,7 @@ impl fmt::Display for Compression {
     }
 }
 
-#[cfg(feature = "rusoto_core")]
+// #[cfg(feature = "rusoto_core")]
 impl From<Compression> for rusoto_core::encoding::ContentEncoding {
     fn from(compression: Compression) -> Self {
         match compression {

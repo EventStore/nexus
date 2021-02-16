@@ -8,26 +8,26 @@ mod ansi_stripper;
 mod apache_metrics;
 #[cfg(feature = "api")]
 mod api;
-#[cfg(feature = "transforms-aws_cloudwatch_logs_subscription_parser")]
+// #[cfg(feature = "transforms-aws_cloudwatch_logs_subscription_parser")]
 mod aws_cloudwatch_logs_subscription_parser;
-#[cfg(feature = "transforms-aws_ec2_metadata")]
+// #[cfg(feature = "transforms-aws_ec2_metadata")]
 mod aws_ec2_metadata;
-#[cfg(feature = "sources-aws_ecs_metrics")]
+// #[cfg(feature = "sources-aws_ecs_metrics")]
 mod aws_ecs_metrics;
-#[cfg(feature = "sources-aws_kinesis_firehose")]
+// #[cfg(feature = "sources-aws_kinesis_firehose")]
 mod aws_kinesis_firehose;
-#[cfg(feature = "sinks-aws_kinesis_streams")]
+// #[cfg(feature = "sinks-aws_kinesis_streams")]
 mod aws_kinesis_streams;
-#[cfg(any(feature = "sources-aws_s3", feature = "sinks-aws_s3"))]
+// #[cfg(any(feature = "sources-aws_s3", feature = "sinks-aws_s3"))]
 pub(crate) mod aws_s3;
-#[cfg(feature = "sinks-aws_sqs")]
+// #[cfg(feature = "sinks-aws_sqs")]
 mod aws_sqs;
 mod blackhole;
 #[cfg(feature = "transforms-coercer")]
 mod coercer;
 #[cfg(feature = "transforms-concat")]
 mod concat;
-#[cfg(feature = "sinks-console")]
+// #[cfg(feature = "sinks-console")]
 mod console;
 #[cfg(feature = "transforms-dedupe")]
 mod dedupe;
@@ -51,30 +51,30 @@ pub mod http_client;
 mod journald;
 #[cfg(feature = "transforms-json_parser")]
 mod json_parser;
-#[cfg(feature = "sources-kafka")]
+// #[cfg(feature = "sources-kafka")]
 mod kafka;
 #[cfg(feature = "transforms-key_value_parser")]
 mod key_value_parser;
 #[cfg(feature = "sources-kubernetes-logs")]
 mod kubernetes_logs;
-#[cfg(feature = "transforms-log_to_metric")]
+// #[cfg(feature = "transforms-log_to_metric")]
 mod log_to_metric;
 #[cfg(feature = "transforms-logfmt_parser")]
 mod logfmt_parser;
 mod logplex;
 #[cfg(feature = "transforms-lua")]
 mod lua;
-#[cfg(feature = "transforms-metric_to_log")]
+// #[cfg(feature = "transforms-metric_to_log")]
 mod metric_to_log;
 #[cfg(feature = "sources-mongodb_metrics")]
 mod mongodb_metrics;
-#[cfg(feature = "sinks-nats")]
+// #[cfg(feature = "sinks-nats")]
 mod nats;
 #[cfg(feature = "sources-nginx_metrics")]
 mod nginx_metrics;
 mod open;
 mod process;
-#[cfg(any(feature = "sources-prometheus", feature = "sinks-prometheus"))]
+// #[cfg(any(feature = "sources-prometheus", feature = "sinks-prometheus"))]
 mod prometheus;
 mod pulsar;
 #[cfg(feature = "transforms-reduce")]
@@ -91,7 +91,7 @@ mod sampler;
 mod sematext_metrics;
 mod socket;
 mod split;
-#[cfg(any(feature = "sources-splunk_hec", feature = "sinks-splunk_hec"))]
+// #[cfg(any(feature = "sources-splunk_hec", feature = "sinks-splunk_hec"))]
 mod splunk_hec;
 #[cfg(feature = "sinks-statsd")]
 mod statsd_sink;
@@ -123,24 +123,24 @@ pub use self::ansi_stripper::*;
 pub use self::apache_metrics::*;
 #[cfg(feature = "api")]
 pub use self::api::*;
-#[cfg(feature = "transforms-aws_cloudwatch_logs_subscription_parser")]
+// #[cfg(feature = "transforms-aws_cloudwatch_logs_subscription_parser")]
 pub(crate) use self::aws_cloudwatch_logs_subscription_parser::*;
-#[cfg(feature = "transforms-aws_ec2_metadata")]
+// #[cfg(feature = "transforms-aws_ec2_metadata")]
 pub use self::aws_ec2_metadata::*;
-#[cfg(feature = "sources-aws_ecs_metrics")]
+// #[cfg(feature = "sources-aws_ecs_metrics")]
 pub use self::aws_ecs_metrics::*;
-#[cfg(feature = "sources-aws_kinesis_firehose")]
+// #[cfg(feature = "sources-aws_kinesis_firehose")]
 pub use self::aws_kinesis_firehose::*;
-#[cfg(feature = "sinks-aws_kinesis_streams")]
+// #[cfg(feature = "sinks-aws_kinesis_streams")]
 pub use self::aws_kinesis_streams::*;
-#[cfg(feature = "sinks-aws_sqs")]
+// #[cfg(feature = "sinks-aws_sqs")]
 pub use self::aws_sqs::*;
 pub use self::blackhole::*;
 #[cfg(feature = "transforms-coercer")]
 pub(crate) use self::coercer::*;
 #[cfg(feature = "transforms-concat")]
 pub use self::concat::*;
-#[cfg(feature = "sinks-console")]
+// #[cfg(feature = "sinks-console")]
 pub use self::console::*;
 #[cfg(feature = "transforms-dedupe")]
 pub(crate) use self::dedupe::*;
@@ -170,28 +170,28 @@ pub(crate) use self::http::*;
 pub(crate) use self::journald::*;
 #[cfg(feature = "transforms-json_parser")]
 pub(crate) use self::json_parser::*;
-#[cfg(feature = "sources-kafka")]
+// #[cfg(feature = "sources-kafka")]
 pub use self::kafka::*;
 #[cfg(feature = "transforms-key_value_parser")]
 pub(crate) use self::key_value_parser::*;
 #[cfg(feature = "sources-kubernetes-logs")]
 pub use self::kubernetes_logs::*;
-#[cfg(feature = "transforms-log_to_metric")]
+// #[cfg(feature = "transforms-log_to_metric")]
 pub(crate) use self::log_to_metric::*;
 #[cfg(feature = "transforms-logfmt_parser")]
 pub use self::logfmt_parser::*;
 pub use self::logplex::*;
 #[cfg(feature = "transforms-lua")]
 pub use self::lua::*;
-#[cfg(feature = "transforms-metric_to_log")]
+// #[cfg(feature = "transforms-metric_to_log")]
 pub(crate) use self::metric_to_log::*;
-#[cfg(feature = "sinks-nats")]
+// #[cfg(feature = "sinks-nats")]
 pub use self::nats::*;
 #[cfg(feature = "sources-nginx_metrics")]
 pub(crate) use self::nginx_metrics::*;
 pub use self::open::*;
 pub use self::process::*;
-#[cfg(any(feature = "sources-prometheus", feature = "sinks-prometheus"))]
+// #[cfg(any(feature = "sources-prometheus", feature = "sinks-prometheus"))]
 pub(crate) use self::prometheus::*;
 pub use self::pulsar::*;
 #[cfg(feature = "transforms-reduce")]
@@ -208,7 +208,7 @@ pub use self::sampler::*;
 pub use self::sematext_metrics::*;
 pub(crate) use self::socket::*;
 pub use self::split::*;
-#[cfg(any(feature = "sources-splunk_hec", feature = "sinks-splunk_hec"))]
+// #[cfg(any(feature = "sources-splunk_hec", feature = "sinks-splunk_hec"))]
 pub(crate) use self::splunk_hec::*;
 #[cfg(feature = "sinks-statsd")]
 pub use self::statsd_sink::*;

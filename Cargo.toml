@@ -114,6 +114,28 @@ syslog = "5"
 syslog_loose = "0.7.0"
 heim = { version = "0.1.0-rc.1", features = ["full"] }
 snap = "1.0.3"
+rdkafka = { version = "0.24.0", features = ["libz", "ssl", "zstd"] }
+nats = { version = "0.8.6" }
+
+# Aws
+rusoto_core = { version = "0.45.0", features = ["encoding"] }
+rusoto_es = { version = "0.45.0" }
+rusoto_s3 = { version = "0.45.0" }
+rusoto_logs = { version = "0.45.0" }
+rusoto_cloudwatch = { version = "0.45.0" }
+rusoto_kinesis = { version = "0.45.0" }
+rusoto_credential = { version = "0.45.0" }
+rusoto_firehose = { version = "0.45.0" }
+rusoto_sts = { version = "0.45.0" }
+rusoto_signature = { version = "0.45.0" }
+rusoto_sqs = { version = "0.45.0" }
+
+# GCP
+goauth = { version = "0.8.1" }
+gouth = { version = "0.1" }
+smpl_jwt = { version = "0.5.0" }
+
+async-compression = { version = "0.3.7", features = ["tokio-02", "gzip", "zstd"] }
 itertools = { version = "0.9.0", optional = true }
 #vector-api-client = { path = "lib/vector-api-client", optional = true }
 num-format = { version = "0.4.0", optional = true }

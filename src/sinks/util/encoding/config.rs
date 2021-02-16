@@ -67,7 +67,7 @@ where
     }
 }
 
-#[cfg(any(feature = "sinks-new_relic_logs", feature = "sinks-humio"))]
+// #[cfg(any(feature = "sinks-new_relic_logs", feature = "sinks-humio"))]
 impl<E> EncodingConfig<E> {
     pub(crate) fn into_encoding<X>(self) -> EncodingConfig<X>
     where

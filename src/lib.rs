@@ -32,12 +32,16 @@ mod serde;
 #[macro_use]
 mod internal_events;
 mod async_read;
+mod expiring_hash_map;
 mod heartbeat;
 mod http;
+mod kafka;
 mod line_agg;
 mod mapping;
 mod metrics;
 mod pipeline;
+mod prometheus;
+mod rusoto;
 mod shutdown;
 mod sink;
 mod sinks;

@@ -2,7 +2,7 @@ use super::InternalEvent;
 use metrics::counter;
 use serde_json::Error;
 
-#[cfg(feature = "sources-splunk_hec")]
+// #[cfg(feature = "sources-splunk_hec")]
 pub(crate) use self::source::*;
 
 #[derive(Debug)]
@@ -57,7 +57,7 @@ impl<'a> InternalEvent for SplunkMissingKeys<'a> {
     }
 }
 
-#[cfg(feature = "sources-splunk_hec")]
+// #[cfg(feature = "sources-splunk_hec")]
 mod source {
     use super::InternalEvent;
     use crate::sources::splunk_hec::ApiError;
