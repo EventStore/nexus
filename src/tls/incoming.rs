@@ -1,10 +1,10 @@
-#[cfg(feature = "listenfd")]
+// #[cfg(feature = "listenfd")]
 use super::Handshake;
 use super::{
     CreateAcceptor, IncomingListener, MaybeTlsSettings, MaybeTlsStream, TcpBind, TlsError,
     TlsSettings,
 };
-#[cfg(feature = "sources-utils-tcp-keepalive")]
+// #[cfg(feature = "sources-utils-tcp-keepalive")]
 use crate::tcp::TcpKeepaliveConfig;
 use bytes::{Buf, BufMut};
 use futures::{future::BoxFuture, stream, FutureExt, Stream};
@@ -85,7 +85,7 @@ impl MaybeTlsListener {
         })
     }
 
-    #[cfg(feature = "listenfd")]
+    // #[cfg(feature = "listenfd")]
     pub(crate) fn local_addr(&self) -> Result<SocketAddr, std::io::Error> {
         self.listener.local_addr()
     }
@@ -121,7 +121,7 @@ impl<S> MaybeTlsIncomingStream<S> {
     }
 
     /// None if connection still hasn't been established.
-    #[cfg(any(feature = "listenfd", feature = "sources-utils-tcp-keepalive"))]
+    // #[cfg(any(feature = "listenfd", feature = "sources-utils-tcp-keepalive"))]
     pub fn get_ref(&self) -> Option<&S> {
         use super::MaybeTls;
 
@@ -152,7 +152,7 @@ impl MaybeTlsIncomingStream<TcpStream> {
     }
 
     // Explicit handshake method
-    #[cfg(feature = "listenfd")]
+    // #[cfg(feature = "listenfd")]
     pub(crate) async fn handshake(&mut self) -> crate::tls::Result<()> {
         if let StreamState::Accepting(fut) = &mut self.state {
             let stream = fut.await.context(Handshake)?;
@@ -162,7 +162,7 @@ impl MaybeTlsIncomingStream<TcpStream> {
         Ok(())
     }
 
-    #[cfg(feature = "sources-utils-tcp-keepalive")]
+    // #[cfg(feature = "sources-utils-tcp-keepalive")]
     pub(crate) fn set_keepalive(&mut self, keepalive: TcpKeepaliveConfig) -> io::Result<()> {
         let stream = self.get_ref().ok_or_else(|| {
             io::Error::new(

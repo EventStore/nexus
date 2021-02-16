@@ -12,23 +12,23 @@ use snafu::Snafu;
 // #[cfg(feature = "sources-docker_logs")]
 // pub mod docker_logs;
 // #[cfg(feature = "sources-eventstoredb")]
-// pub mod eventstoredb;
+pub mod eventstoredb;
 // #[cfg(feature = "sources-file")]
-// pub mod file;
+pub mod file;
 // #[cfg(feature = "sources-generator")]
 // pub mod generator;
 // #[cfg(feature = "sources-heroku_logs")]
 // pub mod heroku_logs;
 // #[cfg(feature = "sources-host_metrics")]
-// pub mod host_metrics;
+pub mod host_metrics;
 // #[cfg(feature = "sources-http")]
-// pub mod http;
+pub mod http;
 // #[cfg(feature = "sources-internal_logs")]
-// pub mod internal_logs;
+pub mod internal_logs;
 // #[cfg(feature = "sources-internal_metrics")]
-// pub mod internal_metrics;
+pub mod internal_metrics;
 // #[cfg(all(unix, feature = "sources-journald"))]
-// pub mod journald;
+pub mod journald;
 // #[cfg(all(feature = "sources-kafka", feature = "rdkafka"))]
 // pub mod kafka;
 // #[cfg(feature = "sources-kubernetes-logs")]
@@ -40,17 +40,17 @@ use snafu::Snafu;
 // #[cfg(feature = "sources-prometheus")]
 // pub mod prometheus;
 // #[cfg(feature = "sources-socket")]
-// pub mod socket;
+pub mod socket;
 // #[cfg(feature = "sources-splunk_hec")]
 // pub mod splunk_hec;
 // #[cfg(feature = "sources-statsd")]
 // pub mod statsd;
 // #[cfg(feature = "sources-stdin")]
-// pub mod stdin;
+pub mod stdin;
 // #[cfg(feature = "sources-syslog")]
-// pub mod syslog;
+pub mod syslog;
 // #[cfg(feature = "sources-vector")]
-// pub mod vector;
+pub mod vector;
 
 mod util;
 

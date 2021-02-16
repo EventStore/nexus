@@ -31,10 +31,12 @@ mod event;
 mod serde;
 #[macro_use]
 mod internal_events;
+mod async_read;
 mod heartbeat;
 mod http;
 mod line_agg;
 mod mapping;
+mod metrics;
 mod pipeline;
 mod shutdown;
 mod sink;
@@ -49,7 +51,7 @@ mod trace;
 mod transforms;
 mod trigger;
 mod types;
-mod validate;
+// mod validate;
 
 pub use event::{Event, Value};
 pub use pipeline::Pipeline;

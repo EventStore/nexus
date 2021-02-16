@@ -43,11 +43,11 @@ mod geoip;
 #[cfg(feature = "transforms-grok_parser")]
 mod grok_parser;
 mod heartbeat;
-#[cfg(feature = "sources-host_metrics")]
+// #[cfg(feature = "sources-host_metrics")]
 mod host_metrics;
 mod http;
 pub mod http_client;
-#[cfg(all(unix, feature = "sources-journald"))]
+// #[cfg(all(unix, feature = "sources-journald"))]
 mod journald;
 #[cfg(feature = "transforms-json_parser")]
 mod json_parser;
@@ -79,12 +79,12 @@ mod prometheus;
 mod pulsar;
 #[cfg(feature = "transforms-reduce")]
 mod reduce;
-#[cfg(feature = "transforms-regex_parser")]
+// #[cfg(feature = "transforms-regex_parser")]
 mod regex_parser;
 mod remap;
-#[cfg(feature = "transforms-remove_fields")]
+// #[cfg(feature = "transforms-remove_fields")]
 mod remove_fields;
-#[cfg(feature = "transforms-rename_fields")]
+// #[cfg(feature = "transforms-rename_fields")]
 mod rename_fields;
 mod sampler;
 #[cfg(feature = "sinks-sematext")]
@@ -147,11 +147,11 @@ pub(crate) use self::dedupe::*;
 #[cfg(feature = "sources-docker_logs")]
 pub use self::docker_logs::*;
 pub use self::elasticsearch::*;
-#[cfg(any(
-    feature = "sources-file",
-    feature = "sources-kubernetes-logs",
-    feature = "sinks-file",
-))]
+// #[cfg(any(
+//     feature = "sources-file",
+//     feature = "sources-kubernetes-logs",
+//     feature = "sinks-file",
+// ))]
 pub use self::file::*;
 #[cfg(feature = "transforms-filter")]
 pub use self::filter::*;
@@ -162,11 +162,11 @@ pub(crate) use self::geoip::*;
 #[cfg(feature = "transforms-grok_parser")]
 pub(crate) use self::grok_parser::*;
 pub use self::heartbeat::*;
-#[cfg(feature = "sources-host_metrics")]
+// #[cfg(feature = "sources-host_metrics")]
 pub(crate) use self::host_metrics::*;
-#[cfg(any(feature = "sources-utils-http", feature = "sinks-http"))]
+// #[cfg(any(feature = "sources-utils-http", feature = "sinks-http"))]
 pub(crate) use self::http::*;
-#[cfg(all(unix, feature = "sources-journald"))]
+// #[cfg(all(unix, feature = "sources-journald"))]
 pub(crate) use self::journald::*;
 #[cfg(feature = "transforms-json_parser")]
 pub(crate) use self::json_parser::*;
@@ -196,12 +196,12 @@ pub(crate) use self::prometheus::*;
 pub use self::pulsar::*;
 #[cfg(feature = "transforms-reduce")]
 pub(crate) use self::reduce::*;
-#[cfg(feature = "transforms-regex_parser")]
+// #[cfg(feature = "transforms-regex_parser")]
 pub(crate) use self::regex_parser::*;
 pub use self::remap::*;
-#[cfg(feature = "transforms-remove_fields")]
+// #[cfg(feature = "transforms-remove_fields")]
 pub use self::remove_fields::*;
-#[cfg(feature = "transforms-rename_fields")]
+// #[cfg(feature = "transforms-rename_fields")]
 pub use self::rename_fields::*;
 pub use self::sampler::*;
 #[cfg(feature = "sinks-sematext")]
@@ -251,12 +251,12 @@ macro_rules! emit {
     };
 }
 
-// Modules that require emit! macro so they need to be defined after the macro.
-#[cfg(any(
-    feature = "sources-file",
-    feature = "sources-kubernetes-logs",
-    feature = "sinks-file",
-))]
+// // Modules that require emit! macro so they need to be defined after the macro.
+// #[cfg(any(
+//     feature = "sources-file",
+//     feature = "sources-kubernetes-logs",
+//     feature = "sinks-file",
+// ))]
 mod file;
 mod windows;
 
