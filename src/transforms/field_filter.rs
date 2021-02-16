@@ -78,10 +78,10 @@ impl FunctionTransform for FieldFilter {
     }
 }
 
-#[cfg(test)]
-mod test {
-    #[test]
-    fn generate_config() {
-        crate::test_util::test_generate_config::<super::FieldFilterConfig>();
-    }
-}
+// #[cfg(test)]
+// mod test {
+//     #[test]
+//     fn generate_config() {
+//         crate::test_util::test_generate_config::<super::FieldFilterConfig>();
+//     }
+// }

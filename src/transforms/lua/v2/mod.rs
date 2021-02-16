@@ -158,12 +158,12 @@ impl Lua {
             ctx.set_named_registry_value("hooks_process", hooks_process)?;
 
             let xid_gen = libxid::new_generator();
-            let generate_xid: rlua::Function<'_> =
-                ctx.create_function(move |_, _: ()| {
-                    xid_gen.new_id().map(|id| id.encode()).map_err(|e| {
-                        rlua::Error::RuntimeError(e.to_string())
-                    })
-                })?;
+            let generate_xid: rlua::Function<'_> = ctx.create_function(move |_, _: ()| {
+                xid_gen
+                    .new_id()
+                    .map(|id| id.encode())
+                    .map_err(|e| rlua::Error::RuntimeError(e.to_string()))
+            })?;
             ctx.globals().set("generate_xid", generate_xid)?;
             // ctx.set_named_registry_value("generate_xid", generate_xid)?;
             if let Some(hooks_shutdown) = &config.hooks.shutdown {
@@ -349,500 +349,500 @@ fn format_error(error: &rlua::Error) -> String {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{
-        event::{
-            metric::{Metric, MetricKind, MetricValue},
-            Event, Value,
-        },
-        test_util::trace_init,
-        transforms::TaskTransform,
-    };
-    use futures::{compat::Stream01CompatExt, StreamExt};
-
-    fn from_config(config: &str) -> crate::Result<Box<Lua>> {
-        Lua::new(&toml::from_str(config).unwrap()).map(Box::new)
-    }
-
-    #[tokio::test]
-    async fn lua_add_field() -> crate::Result<()> {
-        trace_init();
-
-        let transform = from_config(
-            r#"
-            hooks.process = """function (event, emit)
-                event["log"]["hello"] = "goodbye"
-                emit(event)
-            end
-            """
-            "#,
-        )
-        .unwrap();
-
-        let event = Event::from("program me");
-        let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
-        let mut out_stream = transform.transform(in_stream).compat();
-        let output = out_stream.next().await.unwrap().unwrap();
-
-        assert_eq!(output.as_log()["hello"], "goodbye".into());
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn lua_read_field() -> crate::Result<()> {
-        trace_init();
-
-        let transform = from_config(
-            r#"
-            hooks.process = """function (event, emit)
-                _, _, name = string.find(event.log.message, "Hello, my name is (%a+).")
-                event.log.name = name
-                emit(event)
-            end
-            """
-            "#,
-        )
-        .unwrap();
-
-        let event = Event::from("Hello, my name is Bob.");
-        let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
-        let mut out_stream = transform.transform(in_stream).compat();
-        let output = out_stream.next().await.unwrap().unwrap();
-
-        assert_eq!(output.as_log()["name"], "Bob".into());
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn lua_remove_field() -> crate::Result<()> {
-        trace_init();
-
-        let transform = from_config(
-            r#"
-            hooks.process = """function (event, emit)
-                event.log.name = nil
-                emit(event)
-            end
-            """
-            "#,
-        )
-        .unwrap();
-
-        let mut event = Event::new_empty_log();
-        event.as_mut_log().insert("name", "Bob");
-
-        let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
-        let mut out_stream = transform.transform(in_stream).compat();
-        let output = out_stream.next().await.unwrap().unwrap();
-
-        assert!(output.as_log().get("name").is_none());
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn lua_drop_event() -> crate::Result<()> {
-        trace_init();
-
-        let transform = from_config(
-            r#"
-            hooks.process = """function (event, emit)
-                -- emit nothing
-            end
-            """
-            "#,
-        )
-        .unwrap();
-
-        let event = Event::new_empty_log();
-        let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
-        let mut out_stream = transform.transform(in_stream).compat();
-        let output = out_stream.next().await;
-
-        assert!(output.is_none());
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn lua_duplicate_event() -> crate::Result<()> {
-        trace_init();
-
-        let transform = from_config(
-            r#"
-            hooks.process = """function (event, emit)
-                emit(event)
-                emit(event)
-            end
-            """
-            "#,
-        )
-        .unwrap();
-
-        let mut event = Event::new_empty_log();
-        event.as_mut_log().insert("host", "127.0.0.1");
-        let input = Box::new(futures01::stream::iter_ok(vec![event]));
-        let output = transform.transform(Box::new(input));
-        let out = output.compat().collect::<Vec<_>>().await;
-
-        assert_eq!(out.len(), 2);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn lua_read_empty_field() -> crate::Result<()> {
-        trace_init();
-
-        let transform = from_config(
-            r#"
-            hooks.process = """function (event, emit)
-                if event["log"]["non-existant"] == nil then
-                  event["log"]["result"] = "empty"
-                else
-                  event["log"]["result"] = "found"
-                end
-                emit(event)
-            end
-            """
-            "#,
-        )
-        .unwrap();
-
-        let event = Event::new_empty_log();
-
-        let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
-        let mut out_stream = transform.transform(in_stream).compat();
-        let output = out_stream.next().await.unwrap().unwrap();
-
-        assert_eq!(output.as_log()["result"], "empty".into());
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn lua_integer_value() -> crate::Result<()> {
-        trace_init();
-
-        let transform = from_config(
-            r#"
-            hooks.process = """function (event, emit)
-                event["log"]["number"] = 3
-                emit(event)
-            end
-            """
-            "#,
-        )
-        .unwrap();
-
-        let event = Event::new_empty_log();
-        let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
-        let mut out_stream = transform.transform(in_stream).compat();
-        let output = out_stream.next().await.unwrap().unwrap();
-
-        assert_eq!(output.as_log()["number"], Value::Integer(3));
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn lua_numeric_value() -> crate::Result<()> {
-        trace_init();
-
-        let transform = from_config(
-            r#"
-            hooks.process = """function (event, emit)
-                event["log"]["number"] = 3.14159
-                emit(event)
-            end
-            """
-            "#,
-        )
-        .unwrap();
-
-        let event = Event::new_empty_log();
-        let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
-        let mut out_stream = transform.transform(in_stream).compat();
-        let output = out_stream.next().await.unwrap().unwrap();
-
-        assert_eq!(output.as_log()["number"], Value::Float(3.14159));
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn lua_boolean_value() -> crate::Result<()> {
-        trace_init();
-
-        let transform = from_config(
-            r#"
-            hooks.process = """function (event, emit)
-                event["log"]["bool"] = true
-                emit(event)
-            end
-            """
-            "#,
-        )
-        .unwrap();
-
-        let event = Event::new_empty_log();
-        let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
-        let mut out_stream = transform.transform(in_stream).compat();
-        let output = out_stream.next().await.unwrap().unwrap();
-
-        assert_eq!(output.as_log()["bool"], Value::Boolean(true));
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn lua_non_coercible_value() -> crate::Result<()> {
-        trace_init();
-
-        let transform = from_config(
-            r#"
-            hooks.process = """function (event, emit)
-                event["log"]["junk"] = nil
-                emit(event)
-            end
-            """
-            "#,
-        )
-        .unwrap();
-
-        let event = Event::new_empty_log();
-        let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
-        let mut out_stream = transform.transform(in_stream).compat();
-        let output = out_stream.next().await.unwrap().unwrap();
-
-        assert_eq!(output.as_log().get("junk"), None);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn lua_non_string_key_write() -> crate::Result<()> {
-        trace_init();
-
-        let mut transform = from_config(
-            r#"
-            hooks.process = """function (event, emit)
-                event["log"][false] = "hello"
-                emit(event)
-            end
-            """
-            "#,
-        )
-        .unwrap();
-
-        let err = transform
-            .process_single(Event::new_empty_log())
-            .unwrap_err();
-        let err = format_error(&err);
-        assert!(err.contains("error converting Lua boolean to String"), err);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn lua_non_string_key_read() -> crate::Result<()> {
-        trace_init();
-
-        let transform = from_config(
-            r#"
-            hooks.process = """function (event, emit)
-                event.log.result = event.log[false]
-                emit(event)
-            end
-            """
-            "#,
-        )
-        .unwrap();
-
-        let event = Event::new_empty_log();
-        let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
-        let mut out_stream = transform.transform(in_stream).compat();
-        let output = out_stream.next().await.unwrap().unwrap();
-        assert_eq!(output.as_log().get("result"), None);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn lua_script_error() -> crate::Result<()> {
-        trace_init();
-
-        let mut transform = from_config(
-            r#"
-            hooks.process = """function (event, emit)
-                error("this is an error")
-            end
-            """
-            "#,
-        )
-        .unwrap();
-
-        let err = transform
-            .process_single(Event::new_empty_log())
-            .unwrap_err();
-        let err = format_error(&err);
-        assert!(err.contains("this is an error"), err);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn lua_syntax_error() -> crate::Result<()> {
-        trace_init();
-
-        let err = from_config(
-            r#"
-            hooks.process = """function (event, emit)
-                1234 = sadf <>&*!#@
-            end
-            """
-            "#,
-        )
-        .map(|_| ())
-        .unwrap_err()
-        .to_string();
-
-        assert!(err.contains("syntax error:"), err);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn lua_load_file() -> crate::Result<()> {
-        use std::fs::File;
-        use std::io::Write;
-        trace_init();
-
-        let dir = tempfile::tempdir().unwrap();
-        let mut file = File::create(dir.path().join("script2.lua")).unwrap();
-        write!(
-            &mut file,
-            r#"
-            local M = {{}}
-
-            local function modify(event2)
-              event2["log"]["new field"] = "new value"
-            end
-            M.modify = modify
-
-            return M
-            "#
-        )
-        .unwrap();
-
-        let config = format!(
-            r#"
-            hooks.process = """function (event, emit)
-                local script2 = require("script2")
-                script2.modify(event)
-                emit(event)
-            end
-            """
-            search_dirs = [{:?}]
-            "#,
-            dir.path().as_os_str() // This seems a bit weird, but recall we also support windows.
-        );
-        let transform = from_config(&config).unwrap();
-
-        let event = Event::new_empty_log();
-        let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
-        let mut out_stream = transform.transform(in_stream).compat();
-        let output = out_stream.next().await.unwrap().unwrap();
-
-        assert_eq!(output.as_log()["new field"], "new value".into());
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn lua_pairs() -> crate::Result<()> {
-        trace_init();
-
-        let transform = from_config(
-            r#"
-            hooks.process = """function (event, emit)
-                for k,v in pairs(event.log) do
-                  event.log[k] = k .. v
-                end
-                emit(event)
-            end
-            """
-            "#,
-        )
-        .unwrap();
-
-        let mut event = Event::new_empty_log();
-        event.as_mut_log().insert("name", "Bob");
-        event.as_mut_log().insert("friend", "Alice");
-
-        let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
-        let mut out_stream = transform.transform(in_stream).compat();
-        let output = out_stream.next().await.unwrap().unwrap();
-
-        assert_eq!(output.as_log()["name"], "nameBob".into());
-        assert_eq!(output.as_log()["friend"], "friendAlice".into());
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn lua_metric() -> crate::Result<()> {
-        trace_init();
-
-        let transform = from_config(
-            r#"
-            hooks.process = """function (event, emit)
-                event.metric.counter.value = event.metric.counter.value + 1
-                emit(event)
-            end
-            """
-            "#,
-        )
-        .unwrap();
-
-        let event = Event::Metric(Metric {
-            name: "example counter".into(),
-            namespace: None,
-            timestamp: None,
-            tags: None,
-            kind: MetricKind::Absolute,
-            value: MetricValue::Counter { value: 1.0 },
-        });
-
-        let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
-        let mut out_stream = transform.transform(in_stream).compat();
-        let output = out_stream.next().await.unwrap().unwrap();
-
-        let expected = Event::Metric(Metric {
-            name: "example counter".into(),
-            namespace: None,
-            timestamp: None,
-            tags: None,
-            kind: MetricKind::Absolute,
-            value: MetricValue::Counter { value: 2.0 },
-        });
-
-        assert_eq!(output, expected);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn lua_multiple_events() -> crate::Result<()> {
-        trace_init();
-
-        let transform = from_config(
-            r#"
-            hooks.process = """function (event, emit)
-                event["log"]["hello"] = "goodbye"
-                emit(event)
-            end
-            """
-            "#,
-        )
-        .unwrap();
-
-        let n: usize = 10;
-
-        let events = (0..n).map(|i| Event::from(format!("program me {}", i)));
-
-        let in_stream = Box::new(futures01::stream::iter_ok(events));
-        let out_stream = transform.transform(in_stream).compat();
-        let output = out_stream.collect::<Vec<_>>().await;
-
-        assert_eq!(output.len(), n);
-        Ok(())
-    }
-}
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     use crate::{
+//         event::{
+//             metric::{Metric, MetricKind, MetricValue},
+//             Event, Value,
+//         },
+//         test_util::trace_init,
+//         transforms::TaskTransform,
+//     };
+//     use futures::{compat::Stream01CompatExt, StreamExt};
+//
+//     fn from_config(config: &str) -> crate::Result<Box<Lua>> {
+//         Lua::new(&toml::from_str(config).unwrap()).map(Box::new)
+//     }
+//
+//     #[tokio::test]
+//     async fn lua_add_field() -> crate::Result<()> {
+//         trace_init();
+//
+//         let transform = from_config(
+//             r#"
+//             hooks.process = """function (event, emit)
+//                 event["log"]["hello"] = "goodbye"
+//                 emit(event)
+//             end
+//             """
+//             "#,
+//         )
+//         .unwrap();
+//
+//         let event = Event::from("program me");
+//         let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
+//         let mut out_stream = transform.transform(in_stream).compat();
+//         let output = out_stream.next().await.unwrap().unwrap();
+//
+//         assert_eq!(output.as_log()["hello"], "goodbye".into());
+//         Ok(())
+//     }
+//
+//     #[tokio::test]
+//     async fn lua_read_field() -> crate::Result<()> {
+//         trace_init();
+//
+//         let transform = from_config(
+//             r#"
+//             hooks.process = """function (event, emit)
+//                 _, _, name = string.find(event.log.message, "Hello, my name is (%a+).")
+//                 event.log.name = name
+//                 emit(event)
+//             end
+//             """
+//             "#,
+//         )
+//         .unwrap();
+//
+//         let event = Event::from("Hello, my name is Bob.");
+//         let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
+//         let mut out_stream = transform.transform(in_stream).compat();
+//         let output = out_stream.next().await.unwrap().unwrap();
+//
+//         assert_eq!(output.as_log()["name"], "Bob".into());
+//         Ok(())
+//     }
+//
+//     #[tokio::test]
+//     async fn lua_remove_field() -> crate::Result<()> {
+//         trace_init();
+//
+//         let transform = from_config(
+//             r#"
+//             hooks.process = """function (event, emit)
+//                 event.log.name = nil
+//                 emit(event)
+//             end
+//             """
+//             "#,
+//         )
+//         .unwrap();
+//
+//         let mut event = Event::new_empty_log();
+//         event.as_mut_log().insert("name", "Bob");
+//
+//         let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
+//         let mut out_stream = transform.transform(in_stream).compat();
+//         let output = out_stream.next().await.unwrap().unwrap();
+//
+//         assert!(output.as_log().get("name").is_none());
+//         Ok(())
+//     }
+//
+//     #[tokio::test]
+//     async fn lua_drop_event() -> crate::Result<()> {
+//         trace_init();
+//
+//         let transform = from_config(
+//             r#"
+//             hooks.process = """function (event, emit)
+//                 -- emit nothing
+//             end
+//             """
+//             "#,
+//         )
+//         .unwrap();
+//
+//         let event = Event::new_empty_log();
+//         let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
+//         let mut out_stream = transform.transform(in_stream).compat();
+//         let output = out_stream.next().await;
+//
+//         assert!(output.is_none());
+//         Ok(())
+//     }
+//
+//     #[tokio::test]
+//     async fn lua_duplicate_event() -> crate::Result<()> {
+//         trace_init();
+//
+//         let transform = from_config(
+//             r#"
+//             hooks.process = """function (event, emit)
+//                 emit(event)
+//                 emit(event)
+//             end
+//             """
+//             "#,
+//         )
+//         .unwrap();
+//
+//         let mut event = Event::new_empty_log();
+//         event.as_mut_log().insert("host", "127.0.0.1");
+//         let input = Box::new(futures01::stream::iter_ok(vec![event]));
+//         let output = transform.transform(Box::new(input));
+//         let out = output.compat().collect::<Vec<_>>().await;
+//
+//         assert_eq!(out.len(), 2);
+//         Ok(())
+//     }
+//
+//     #[tokio::test]
+//     async fn lua_read_empty_field() -> crate::Result<()> {
+//         trace_init();
+//
+//         let transform = from_config(
+//             r#"
+//             hooks.process = """function (event, emit)
+//                 if event["log"]["non-existant"] == nil then
+//                   event["log"]["result"] = "empty"
+//                 else
+//                   event["log"]["result"] = "found"
+//                 end
+//                 emit(event)
+//             end
+//             """
+//             "#,
+//         )
+//         .unwrap();
+//
+//         let event = Event::new_empty_log();
+//
+//         let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
+//         let mut out_stream = transform.transform(in_stream).compat();
+//         let output = out_stream.next().await.unwrap().unwrap();
+//
+//         assert_eq!(output.as_log()["result"], "empty".into());
+//         Ok(())
+//     }
+//
+//     #[tokio::test]
+//     async fn lua_integer_value() -> crate::Result<()> {
+//         trace_init();
+//
+//         let transform = from_config(
+//             r#"
+//             hooks.process = """function (event, emit)
+//                 event["log"]["number"] = 3
+//                 emit(event)
+//             end
+//             """
+//             "#,
+//         )
+//         .unwrap();
+//
+//         let event = Event::new_empty_log();
+//         let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
+//         let mut out_stream = transform.transform(in_stream).compat();
+//         let output = out_stream.next().await.unwrap().unwrap();
+//
+//         assert_eq!(output.as_log()["number"], Value::Integer(3));
+//         Ok(())
+//     }
+//
+//     #[tokio::test]
+//     async fn lua_numeric_value() -> crate::Result<()> {
+//         trace_init();
+//
+//         let transform = from_config(
+//             r#"
+//             hooks.process = """function (event, emit)
+//                 event["log"]["number"] = 3.14159
+//                 emit(event)
+//             end
+//             """
+//             "#,
+//         )
+//         .unwrap();
+//
+//         let event = Event::new_empty_log();
+//         let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
+//         let mut out_stream = transform.transform(in_stream).compat();
+//         let output = out_stream.next().await.unwrap().unwrap();
+//
+//         assert_eq!(output.as_log()["number"], Value::Float(3.14159));
+//         Ok(())
+//     }
+//
+//     #[tokio::test]
+//     async fn lua_boolean_value() -> crate::Result<()> {
+//         trace_init();
+//
+//         let transform = from_config(
+//             r#"
+//             hooks.process = """function (event, emit)
+//                 event["log"]["bool"] = true
+//                 emit(event)
+//             end
+//             """
+//             "#,
+//         )
+//         .unwrap();
+//
+//         let event = Event::new_empty_log();
+//         let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
+//         let mut out_stream = transform.transform(in_stream).compat();
+//         let output = out_stream.next().await.unwrap().unwrap();
+//
+//         assert_eq!(output.as_log()["bool"], Value::Boolean(true));
+//         Ok(())
+//     }
+//
+//     #[tokio::test]
+//     async fn lua_non_coercible_value() -> crate::Result<()> {
+//         trace_init();
+//
+//         let transform = from_config(
+//             r#"
+//             hooks.process = """function (event, emit)
+//                 event["log"]["junk"] = nil
+//                 emit(event)
+//             end
+//             """
+//             "#,
+//         )
+//         .unwrap();
+//
+//         let event = Event::new_empty_log();
+//         let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
+//         let mut out_stream = transform.transform(in_stream).compat();
+//         let output = out_stream.next().await.unwrap().unwrap();
+//
+//         assert_eq!(output.as_log().get("junk"), None);
+//         Ok(())
+//     }
+//
+//     #[tokio::test]
+//     async fn lua_non_string_key_write() -> crate::Result<()> {
+//         trace_init();
+//
+//         let mut transform = from_config(
+//             r#"
+//             hooks.process = """function (event, emit)
+//                 event["log"][false] = "hello"
+//                 emit(event)
+//             end
+//             """
+//             "#,
+//         )
+//         .unwrap();
+//
+//         let err = transform
+//             .process_single(Event::new_empty_log())
+//             .unwrap_err();
+//         let err = format_error(&err);
+//         assert!(err.contains("error converting Lua boolean to String"), err);
+//         Ok(())
+//     }
+//
+//     #[tokio::test]
+//     async fn lua_non_string_key_read() -> crate::Result<()> {
+//         trace_init();
+//
+//         let transform = from_config(
+//             r#"
+//             hooks.process = """function (event, emit)
+//                 event.log.result = event.log[false]
+//                 emit(event)
+//             end
+//             """
+//             "#,
+//         )
+//         .unwrap();
+//
+//         let event = Event::new_empty_log();
+//         let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
+//         let mut out_stream = transform.transform(in_stream).compat();
+//         let output = out_stream.next().await.unwrap().unwrap();
+//         assert_eq!(output.as_log().get("result"), None);
+//         Ok(())
+//     }
+//
+//     #[tokio::test]
+//     async fn lua_script_error() -> crate::Result<()> {
+//         trace_init();
+//
+//         let mut transform = from_config(
+//             r#"
+//             hooks.process = """function (event, emit)
+//                 error("this is an error")
+//             end
+//             """
+//             "#,
+//         )
+//         .unwrap();
+//
+//         let err = transform
+//             .process_single(Event::new_empty_log())
+//             .unwrap_err();
+//         let err = format_error(&err);
+//         assert!(err.contains("this is an error"), err);
+//         Ok(())
+//     }
+//
+//     #[tokio::test]
+//     async fn lua_syntax_error() -> crate::Result<()> {
+//         trace_init();
+//
+//         let err = from_config(
+//             r#"
+//             hooks.process = """function (event, emit)
+//                 1234 = sadf <>&*!#@
+//             end
+//             """
+//             "#,
+//         )
+//         .map(|_| ())
+//         .unwrap_err()
+//         .to_string();
+//
+//         assert!(err.contains("syntax error:"), err);
+//         Ok(())
+//     }
+//
+//     #[tokio::test]
+//     async fn lua_load_file() -> crate::Result<()> {
+//         use std::fs::File;
+//         use std::io::Write;
+//         trace_init();
+//
+//         let dir = tempfile::tempdir().unwrap();
+//         let mut file = File::create(dir.path().join("script2.lua")).unwrap();
+//         write!(
+//             &mut file,
+//             r#"
+//             local M = {{}}
+//
+//             local function modify(event2)
+//               event2["log"]["new field"] = "new value"
+//             end
+//             M.modify = modify
+//
+//             return M
+//             "#
+//         )
+//         .unwrap();
+//
+//         let config = format!(
+//             r#"
+//             hooks.process = """function (event, emit)
+//                 local script2 = require("script2")
+//                 script2.modify(event)
+//                 emit(event)
+//             end
+//             """
+//             search_dirs = [{:?}]
+//             "#,
+//             dir.path().as_os_str() // This seems a bit weird, but recall we also support windows.
+//         );
+//         let transform = from_config(&config).unwrap();
+//
+//         let event = Event::new_empty_log();
+//         let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
+//         let mut out_stream = transform.transform(in_stream).compat();
+//         let output = out_stream.next().await.unwrap().unwrap();
+//
+//         assert_eq!(output.as_log()["new field"], "new value".into());
+//         Ok(())
+//     }
+//
+//     #[tokio::test]
+//     async fn lua_pairs() -> crate::Result<()> {
+//         trace_init();
+//
+//         let transform = from_config(
+//             r#"
+//             hooks.process = """function (event, emit)
+//                 for k,v in pairs(event.log) do
+//                   event.log[k] = k .. v
+//                 end
+//                 emit(event)
+//             end
+//             """
+//             "#,
+//         )
+//         .unwrap();
+//
+//         let mut event = Event::new_empty_log();
+//         event.as_mut_log().insert("name", "Bob");
+//         event.as_mut_log().insert("friend", "Alice");
+//
+//         let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
+//         let mut out_stream = transform.transform(in_stream).compat();
+//         let output = out_stream.next().await.unwrap().unwrap();
+//
+//         assert_eq!(output.as_log()["name"], "nameBob".into());
+//         assert_eq!(output.as_log()["friend"], "friendAlice".into());
+//         Ok(())
+//     }
+//
+//     #[tokio::test]
+//     async fn lua_metric() -> crate::Result<()> {
+//         trace_init();
+//
+//         let transform = from_config(
+//             r#"
+//             hooks.process = """function (event, emit)
+//                 event.metric.counter.value = event.metric.counter.value + 1
+//                 emit(event)
+//             end
+//             """
+//             "#,
+//         )
+//         .unwrap();
+//
+//         let event = Event::Metric(Metric {
+//             name: "example counter".into(),
+//             namespace: None,
+//             timestamp: None,
+//             tags: None,
+//             kind: MetricKind::Absolute,
+//             value: MetricValue::Counter { value: 1.0 },
+//         });
+//
+//         let in_stream = Box::new(futures01::stream::iter_ok(vec![event]));
+//         let mut out_stream = transform.transform(in_stream).compat();
+//         let output = out_stream.next().await.unwrap().unwrap();
+//
+//         let expected = Event::Metric(Metric {
+//             name: "example counter".into(),
+//             namespace: None,
+//             timestamp: None,
+//             tags: None,
+//             kind: MetricKind::Absolute,
+//             value: MetricValue::Counter { value: 2.0 },
+//         });
+//
+//         assert_eq!(output, expected);
+//         Ok(())
+//     }
+//
+//     #[tokio::test]
+//     async fn lua_multiple_events() -> crate::Result<()> {
+//         trace_init();
+//
+//         let transform = from_config(
+//             r#"
+//             hooks.process = """function (event, emit)
+//                 event["log"]["hello"] = "goodbye"
+//                 emit(event)
+//             end
+//             """
+//             "#,
+//         )
+//         .unwrap();
+//
+//         let n: usize = 10;
+//
+//         let events = (0..n).map(|i| Event::from(format!("program me {}", i)));
+//
+//         let in_stream = Box::new(futures01::stream::iter_ok(events));
+//         let out_stream = transform.transform(in_stream).compat();
+//         let output = out_stream.collect::<Vec<_>>().await;
+//
+//         assert_eq!(output.len(), n);
+//         Ok(())
+//     }
+// }

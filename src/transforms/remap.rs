@@ -92,86 +92,86 @@ impl FunctionTransform for Remap {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::event::{
-        metric::{MetricKind, MetricValue},
-        Metric,
-    };
-    use std::collections::BTreeMap;
-
-    #[test]
-    fn generate_config() {
-        crate::test_util::test_generate_config::<RemapConfig>();
-    }
-
-    fn get_field_string(event: &Event, field: &str) -> String {
-        event.as_log().get(field).unwrap().to_string_lossy()
-    }
-
-    #[test]
-    fn check_remap_adds() {
-        let event = {
-            let mut event = Event::from("augment me");
-            event.as_mut_log().insert("copy_from", "buz");
-            event
-        };
-
-        let conf = RemapConfig {
-            source: r#"  .foo = "bar"
-  .bar = "baz"
-  .copy = .copy_from
-"#
-            .to_string(),
-            drop_on_err: true,
-        };
-        let mut tform = Remap::new(conf).unwrap();
-
-        let result = tform.transform_one(event).unwrap();
-        assert_eq!(get_field_string(&result, "message"), "augment me");
-        assert_eq!(get_field_string(&result, "copy_from"), "buz");
-        assert_eq!(get_field_string(&result, "foo"), "bar");
-        assert_eq!(get_field_string(&result, "bar"), "baz");
-        assert_eq!(get_field_string(&result, "copy"), "buz");
-    }
-
-    #[test]
-    fn check_remap_metric() {
-        let metric = Event::Metric(Metric {
-            name: "counter".into(),
-            namespace: None,
-            timestamp: None,
-            tags: None,
-            kind: MetricKind::Absolute,
-            value: MetricValue::Counter { value: 1.0 },
-        });
-
-        let conf = RemapConfig {
-            source: r#".tags.host = "zoobub"
-                       .name = "zork"
-                       .namespace = "zerk"
-                       .kind = "incremental""#
-                .to_string(),
-            drop_on_err: true,
-        };
-        let mut tform = Remap::new(conf).unwrap();
-
-        let result = tform.transform_one(metric).unwrap();
-        assert_eq!(
-            result,
-            Event::Metric(Metric {
-                name: "zork".into(),
-                namespace: Some("zerk".into()),
-                timestamp: None,
-                tags: Some({
-                    let mut tags = BTreeMap::new();
-                    tags.insert("host".into(), "zoobub".into());
-                    tags
-                }),
-                kind: MetricKind::Incremental,
-                value: MetricValue::Counter { value: 1.0 },
-            })
-        );
-    }
-}
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     use crate::event::{
+//         metric::{MetricKind, MetricValue},
+//         Metric,
+//     };
+//     use std::collections::BTreeMap;
+//
+//     #[test]
+//     fn generate_config() {
+//         crate::test_util::test_generate_config::<RemapConfig>();
+//     }
+//
+//     fn get_field_string(event: &Event, field: &str) -> String {
+//         event.as_log().get(field).unwrap().to_string_lossy()
+//     }
+//
+//     #[test]
+//     fn check_remap_adds() {
+//         let event = {
+//             let mut event = Event::from("augment me");
+//             event.as_mut_log().insert("copy_from", "buz");
+//             event
+//         };
+//
+//         let conf = RemapConfig {
+//             source: r#"  .foo = "bar"
+//   .bar = "baz"
+//   .copy = .copy_from
+// "#
+//             .to_string(),
+//             drop_on_err: true,
+//         };
+//         let mut tform = Remap::new(conf).unwrap();
+//
+//         let result = tform.transform_one(event).unwrap();
+//         assert_eq!(get_field_string(&result, "message"), "augment me");
+//         assert_eq!(get_field_string(&result, "copy_from"), "buz");
+//         assert_eq!(get_field_string(&result, "foo"), "bar");
+//         assert_eq!(get_field_string(&result, "bar"), "baz");
+//         assert_eq!(get_field_string(&result, "copy"), "buz");
+//     }
+//
+//     #[test]
+//     fn check_remap_metric() {
+//         let metric = Event::Metric(Metric {
+//             name: "counter".into(),
+//             namespace: None,
+//             timestamp: None,
+//             tags: None,
+//             kind: MetricKind::Absolute,
+//             value: MetricValue::Counter { value: 1.0 },
+//         });
+//
+//         let conf = RemapConfig {
+//             source: r#".tags.host = "zoobub"
+//                        .name = "zork"
+//                        .namespace = "zerk"
+//                        .kind = "incremental""#
+//                 .to_string(),
+//             drop_on_err: true,
+//         };
+//         let mut tform = Remap::new(conf).unwrap();
+//
+//         let result = tform.transform_one(metric).unwrap();
+//         assert_eq!(
+//             result,
+//             Event::Metric(Metric {
+//                 name: "zork".into(),
+//                 namespace: Some("zerk".into()),
+//                 timestamp: None,
+//                 tags: Some({
+//                     let mut tags = BTreeMap::new();
+//                     tags.insert("host".into(), "zoobub".into());
+//                     tags
+//                 }),
+//                 kind: MetricKind::Incremental,
+//                 value: MetricValue::Counter { value: 1.0 },
+//             })
+//         );
+//     }
+// }

@@ -257,300 +257,300 @@ pub fn format_error(error: &rlua::Error) -> String {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::event::{Event, Value};
-
-    #[test]
-    fn lua_add_field() {
-        crate::test_util::trace_init();
-        let mut transform = Lua::new(
-            r#"
-              event["hello"] = "goodbye"
-            "#
-            .to_string(),
-            vec![],
-        )
-        .unwrap();
-
-        let event = Event::from("program me");
-
-        let event = transform.transform_one(event).unwrap();
-
-        assert_eq!(event.as_log()["hello"], "goodbye".into());
-    }
-
-    #[test]
-    fn lua_read_field() {
-        crate::test_util::trace_init();
-        let mut transform = Lua::new(
-            r#"
-              _, _, name = string.find(event["message"], "Hello, my name is (%a+).")
-              event["name"] = name
-            "#
-            .to_string(),
-            vec![],
-        )
-        .unwrap();
-
-        let event = Event::from("Hello, my name is Bob.");
-
-        let event = transform.transform_one(event).unwrap();
-
-        assert_eq!(event.as_log()["name"], "Bob".into());
-    }
-
-    #[test]
-    fn lua_remove_field() {
-        crate::test_util::trace_init();
-        let mut transform = Lua::new(
-            r#"
-              event["name"] = nil
-            "#
-            .to_string(),
-            vec![],
-        )
-        .unwrap();
-
-        let mut event = Event::new_empty_log();
-        event.as_mut_log().insert("name", "Bob");
-        let event = transform.transform_one(event).unwrap();
-
-        assert!(event.as_log().get("name").is_none());
-    }
-
-    #[test]
-    fn lua_drop_event() {
-        let mut transform = Lua::new(
-            r#"
-              event = nil
-            "#
-            .to_string(),
-            vec![],
-        )
-        .unwrap();
-
-        let mut event = Event::new_empty_log();
-        event.as_mut_log().insert("name", "Bob");
-        let event = transform.transform_one(event);
-
-        assert!(event.is_none());
-    }
-
-    #[test]
-    fn lua_read_empty_field() {
-        crate::test_util::trace_init();
-        let mut transform = Lua::new(
-            r#"
-              if event["non-existant"] == nil then
-                event["result"] = "empty"
-              else
-                event["result"] = "found"
-              end
-            "#
-            .to_string(),
-            vec![],
-        )
-        .unwrap();
-
-        let event = Event::new_empty_log();
-        let event = transform.transform_one(event).unwrap();
-
-        assert_eq!(event.as_log()["result"], "empty".into());
-    }
-
-    #[test]
-    fn lua_integer_value() {
-        crate::test_util::trace_init();
-        let mut transform = Lua::new(
-            r#"
-              event["number"] = 3
-            "#
-            .to_string(),
-            vec![],
-        )
-        .unwrap();
-
-        let event = transform.transform_one(Event::new_empty_log()).unwrap();
-        assert_eq!(event.as_log()["number"], Value::Integer(3));
-    }
-
-    #[test]
-    fn lua_numeric_value() {
-        crate::test_util::trace_init();
-        let mut transform = Lua::new(
-            r#"
-              event["number"] = 3.14159
-            "#
-            .to_string(),
-            vec![],
-        )
-        .unwrap();
-
-        let event = transform.transform_one(Event::new_empty_log()).unwrap();
-        assert_eq!(event.as_log()["number"], Value::Float(3.14159));
-    }
-
-    #[test]
-    fn lua_boolean_value() {
-        crate::test_util::trace_init();
-        let mut transform = Lua::new(
-            r#"
-              event["bool"] = true
-            "#
-            .to_string(),
-            vec![],
-        )
-        .unwrap();
-
-        let event = transform.transform_one(Event::new_empty_log()).unwrap();
-        assert_eq!(event.as_log()["bool"], Value::Boolean(true));
-    }
-
-    #[test]
-    fn lua_non_coercible_value() {
-        crate::test_util::trace_init();
-        let mut transform = Lua::new(
-            r#"
-              event["junk"] = {"asdf"}
-            "#
-            .to_string(),
-            vec![],
-        )
-        .unwrap();
-
-        let event = transform.transform_one(Event::new_empty_log()).unwrap();
-        assert_eq!(event.as_log().get("junk"), None);
-    }
-
-    #[test]
-    fn lua_non_string_key_write() {
-        crate::test_util::trace_init();
-        let mut transform = Lua::new(
-            r#"
-              event[false] = "hello"
-            "#
-            .to_string(),
-            vec![],
-        )
-        .unwrap();
-
-        let err = transform.process(Event::new_empty_log()).unwrap_err();
-        let err = format_error(&err);
-        assert!(err.contains("error converting Lua boolean to String"), err);
-    }
-
-    #[test]
-    fn lua_non_string_key_read() {
-        crate::test_util::trace_init();
-        let mut transform = Lua::new(
-            r#"
-              print(event[false])
-            "#
-            .to_string(),
-            vec![],
-        )
-        .unwrap();
-
-        let err = transform.process(Event::new_empty_log()).unwrap_err();
-        let err = format_error(&err);
-        assert!(err.contains("error converting Lua boolean to String"), err);
-    }
-
-    #[test]
-    fn lua_script_error() {
-        crate::test_util::trace_init();
-        let mut transform = Lua::new(
-            r#"
-              error("this is an error")
-            "#
-            .to_string(),
-            vec![],
-        )
-        .unwrap();
-
-        let err = transform.process(Event::new_empty_log()).unwrap_err();
-        let err = format_error(&err);
-        assert!(err.contains("this is an error"), err);
-    }
-
-    #[test]
-    fn lua_syntax_error() {
-        crate::test_util::trace_init();
-        let err = Lua::new(
-            r#"
-              1234 = sadf <>&*!#@
-            "#
-            .to_string(),
-            vec![],
-        )
-        .map(|_| ())
-        .unwrap_err()
-        .to_string();
-
-        assert!(err.contains("syntax error:"), err);
-    }
-
-    #[test]
-    fn lua_load_file() {
-        use std::fs::File;
-        use std::io::Write;
-        crate::test_util::trace_init();
-
-        let dir = tempfile::tempdir().unwrap();
-
-        let mut file = File::create(dir.path().join("script2.lua")).unwrap();
-        write!(
-            &mut file,
-            r#"
-              local M = {{}}
-
-              local function modify(event2)
-                event2["new field"] = "new value"
-              end
-              M.modify = modify
-
-              return M
-            "#
-        )
-        .unwrap();
-
-        let source = r#"
-          local script2 = require("script2")
-          script2.modify(event)
-        "#
-        .to_string();
-
-        let mut transform =
-            Lua::new(source, vec![dir.path().to_string_lossy().into_owned()]).unwrap();
-        let event = Event::new_empty_log();
-        let event = transform.transform_one(event).unwrap();
-
-        assert_eq!(event.as_log()["new field"], "new value".into());
-    }
-
-    #[test]
-    fn lua_pairs() {
-        crate::test_util::trace_init();
-        let mut transform = Lua::new(
-            r#"
-              for k,v in pairs(event) do
-                event[k] = k .. v
-              end
-            "#
-            .to_string(),
-            vec![],
-        )
-        .unwrap();
-
-        let mut event = Event::new_empty_log();
-        event.as_mut_log().insert("name", "Bob");
-        event.as_mut_log().insert("friend", "Alice");
-
-        let event = transform.transform_one(event).unwrap();
-
-        assert_eq!(event.as_log()["name"], "nameBob".into());
-        assert_eq!(event.as_log()["friend"], "friendAlice".into());
-    }
-}
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     use crate::event::{Event, Value};
+//
+//     #[test]
+//     fn lua_add_field() {
+//         crate::test_util::trace_init();
+//         let mut transform = Lua::new(
+//             r#"
+//               event["hello"] = "goodbye"
+//             "#
+//             .to_string(),
+//             vec![],
+//         )
+//         .unwrap();
+//
+//         let event = Event::from("program me");
+//
+//         let event = transform.transform_one(event).unwrap();
+//
+//         assert_eq!(event.as_log()["hello"], "goodbye".into());
+//     }
+//
+//     #[test]
+//     fn lua_read_field() {
+//         crate::test_util::trace_init();
+//         let mut transform = Lua::new(
+//             r#"
+//               _, _, name = string.find(event["message"], "Hello, my name is (%a+).")
+//               event["name"] = name
+//             "#
+//             .to_string(),
+//             vec![],
+//         )
+//         .unwrap();
+//
+//         let event = Event::from("Hello, my name is Bob.");
+//
+//         let event = transform.transform_one(event).unwrap();
+//
+//         assert_eq!(event.as_log()["name"], "Bob".into());
+//     }
+//
+//     #[test]
+//     fn lua_remove_field() {
+//         crate::test_util::trace_init();
+//         let mut transform = Lua::new(
+//             r#"
+//               event["name"] = nil
+//             "#
+//             .to_string(),
+//             vec![],
+//         )
+//         .unwrap();
+//
+//         let mut event = Event::new_empty_log();
+//         event.as_mut_log().insert("name", "Bob");
+//         let event = transform.transform_one(event).unwrap();
+//
+//         assert!(event.as_log().get("name").is_none());
+//     }
+//
+//     #[test]
+//     fn lua_drop_event() {
+//         let mut transform = Lua::new(
+//             r#"
+//               event = nil
+//             "#
+//             .to_string(),
+//             vec![],
+//         )
+//         .unwrap();
+//
+//         let mut event = Event::new_empty_log();
+//         event.as_mut_log().insert("name", "Bob");
+//         let event = transform.transform_one(event);
+//
+//         assert!(event.is_none());
+//     }
+//
+//     #[test]
+//     fn lua_read_empty_field() {
+//         crate::test_util::trace_init();
+//         let mut transform = Lua::new(
+//             r#"
+//               if event["non-existant"] == nil then
+//                 event["result"] = "empty"
+//               else
+//                 event["result"] = "found"
+//               end
+//             "#
+//             .to_string(),
+//             vec![],
+//         )
+//         .unwrap();
+//
+//         let event = Event::new_empty_log();
+//         let event = transform.transform_one(event).unwrap();
+//
+//         assert_eq!(event.as_log()["result"], "empty".into());
+//     }
+//
+//     #[test]
+//     fn lua_integer_value() {
+//         crate::test_util::trace_init();
+//         let mut transform = Lua::new(
+//             r#"
+//               event["number"] = 3
+//             "#
+//             .to_string(),
+//             vec![],
+//         )
+//         .unwrap();
+//
+//         let event = transform.transform_one(Event::new_empty_log()).unwrap();
+//         assert_eq!(event.as_log()["number"], Value::Integer(3));
+//     }
+//
+//     #[test]
+//     fn lua_numeric_value() {
+//         crate::test_util::trace_init();
+//         let mut transform = Lua::new(
+//             r#"
+//               event["number"] = 3.14159
+//             "#
+//             .to_string(),
+//             vec![],
+//         )
+//         .unwrap();
+//
+//         let event = transform.transform_one(Event::new_empty_log()).unwrap();
+//         assert_eq!(event.as_log()["number"], Value::Float(3.14159));
+//     }
+//
+//     #[test]
+//     fn lua_boolean_value() {
+//         crate::test_util::trace_init();
+//         let mut transform = Lua::new(
+//             r#"
+//               event["bool"] = true
+//             "#
+//             .to_string(),
+//             vec![],
+//         )
+//         .unwrap();
+//
+//         let event = transform.transform_one(Event::new_empty_log()).unwrap();
+//         assert_eq!(event.as_log()["bool"], Value::Boolean(true));
+//     }
+//
+//     #[test]
+//     fn lua_non_coercible_value() {
+//         crate::test_util::trace_init();
+//         let mut transform = Lua::new(
+//             r#"
+//               event["junk"] = {"asdf"}
+//             "#
+//             .to_string(),
+//             vec![],
+//         )
+//         .unwrap();
+//
+//         let event = transform.transform_one(Event::new_empty_log()).unwrap();
+//         assert_eq!(event.as_log().get("junk"), None);
+//     }
+//
+//     #[test]
+//     fn lua_non_string_key_write() {
+//         crate::test_util::trace_init();
+//         let mut transform = Lua::new(
+//             r#"
+//               event[false] = "hello"
+//             "#
+//             .to_string(),
+//             vec![],
+//         )
+//         .unwrap();
+//
+//         let err = transform.process(Event::new_empty_log()).unwrap_err();
+//         let err = format_error(&err);
+//         assert!(err.contains("error converting Lua boolean to String"), err);
+//     }
+//
+//     #[test]
+//     fn lua_non_string_key_read() {
+//         crate::test_util::trace_init();
+//         let mut transform = Lua::new(
+//             r#"
+//               print(event[false])
+//             "#
+//             .to_string(),
+//             vec![],
+//         )
+//         .unwrap();
+//
+//         let err = transform.process(Event::new_empty_log()).unwrap_err();
+//         let err = format_error(&err);
+//         assert!(err.contains("error converting Lua boolean to String"), err);
+//     }
+//
+//     #[test]
+//     fn lua_script_error() {
+//         crate::test_util::trace_init();
+//         let mut transform = Lua::new(
+//             r#"
+//               error("this is an error")
+//             "#
+//             .to_string(),
+//             vec![],
+//         )
+//         .unwrap();
+//
+//         let err = transform.process(Event::new_empty_log()).unwrap_err();
+//         let err = format_error(&err);
+//         assert!(err.contains("this is an error"), err);
+//     }
+//
+//     #[test]
+//     fn lua_syntax_error() {
+//         crate::test_util::trace_init();
+//         let err = Lua::new(
+//             r#"
+//               1234 = sadf <>&*!#@
+//             "#
+//             .to_string(),
+//             vec![],
+//         )
+//         .map(|_| ())
+//         .unwrap_err()
+//         .to_string();
+//
+//         assert!(err.contains("syntax error:"), err);
+//     }
+//
+//     #[test]
+//     fn lua_load_file() {
+//         use std::fs::File;
+//         use std::io::Write;
+//         crate::test_util::trace_init();
+//
+//         let dir = tempfile::tempdir().unwrap();
+//
+//         let mut file = File::create(dir.path().join("script2.lua")).unwrap();
+//         write!(
+//             &mut file,
+//             r#"
+//               local M = {{}}
+//
+//               local function modify(event2)
+//                 event2["new field"] = "new value"
+//               end
+//               M.modify = modify
+//
+//               return M
+//             "#
+//         )
+//         .unwrap();
+//
+//         let source = r#"
+//           local script2 = require("script2")
+//           script2.modify(event)
+//         "#
+//         .to_string();
+//
+//         let mut transform =
+//             Lua::new(source, vec![dir.path().to_string_lossy().into_owned()]).unwrap();
+//         let event = Event::new_empty_log();
+//         let event = transform.transform_one(event).unwrap();
+//
+//         assert_eq!(event.as_log()["new field"], "new value".into());
+//     }
+//
+//     #[test]
+//     fn lua_pairs() {
+//         crate::test_util::trace_init();
+//         let mut transform = Lua::new(
+//             r#"
+//               for k,v in pairs(event) do
+//                 event[k] = k .. v
+//               end
+//             "#
+//             .to_string(),
+//             vec![],
+//         )
+//         .unwrap();
+//
+//         let mut event = Event::new_empty_log();
+//         event.as_mut_log().insert("name", "Bob");
+//         event.as_mut_log().insert("friend", "Alice");
+//
+//         let event = transform.transform_one(event).unwrap();
+//
+//         assert_eq!(event.as_log()["name"], "nameBob".into());
+//         assert_eq!(event.as_log()["friend"], "friendAlice".into());
+//     }
+// }

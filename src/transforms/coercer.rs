@@ -92,73 +92,73 @@ impl FunctionTransform for Coercer {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::CoercerConfig;
-    use crate::event::{LogEvent, Value};
-    use crate::{config::TransformConfig, Event};
-    use pretty_assertions::assert_eq;
-
-    #[test]
-    fn generate_config() {
-        crate::test_util::test_generate_config::<CoercerConfig>();
-    }
-
-    async fn parse_it(extra: &str) -> LogEvent {
-        let mut event = Event::from("dummy message");
-        for &(key, value) in &[
-            ("number", "1234"),
-            ("bool", "yes"),
-            ("other", "no"),
-            ("float", "broken"),
-        ] {
-            event.as_mut_log().insert(key, value);
-        }
-
-        let mut coercer = toml::from_str::<CoercerConfig>(&format!(
-            r#"{}
-            [types]
-            number = "int"
-            float = "float"
-            bool = "bool"
-            "#,
-            extra
-        ))
-        .unwrap()
-        .build()
-        .await
-        .unwrap();
-        let coercer = coercer.as_function();
-        coercer.transform_one(event).unwrap().into_log()
-    }
-
-    #[tokio::test]
-    async fn converts_valid_fields() {
-        let log = parse_it("").await;
-        assert_eq!(log["number"], Value::Integer(1234));
-        assert_eq!(log["bool"], Value::Boolean(true));
-    }
-
-    #[tokio::test]
-    async fn leaves_unnamed_fields_as_is() {
-        let log = parse_it("").await;
-        assert_eq!(log["other"], Value::Bytes("no".into()));
-    }
-
-    #[tokio::test]
-    async fn drops_nonconvertible_fields() {
-        let log = parse_it("").await;
-        assert!(log.get("float").is_none());
-    }
-
-    #[tokio::test]
-    async fn drops_unspecified_fields() {
-        let log = parse_it("drop_unspecified = true").await;
-
-        let mut expected = Event::new_empty_log();
-        expected.as_mut_log().insert("bool", true);
-        expected.as_mut_log().insert("number", 1234);
-
-        assert_eq!(log, expected.into_log());
-    }
-}
+// #[cfg(test)]
+// mod tests {
+//     use super::CoercerConfig;
+//     use crate::event::{LogEvent, Value};
+//     use crate::{config::TransformConfig, Event};
+//     use pretty_assertions::assert_eq;
+//
+//     #[test]
+//     fn generate_config() {
+//         crate::test_util::test_generate_config::<CoercerConfig>();
+//     }
+//
+//     async fn parse_it(extra: &str) -> LogEvent {
+//         let mut event = Event::from("dummy message");
+//         for &(key, value) in &[
+//             ("number", "1234"),
+//             ("bool", "yes"),
+//             ("other", "no"),
+//             ("float", "broken"),
+//         ] {
+//             event.as_mut_log().insert(key, value);
+//         }
+//
+//         let mut coercer = toml::from_str::<CoercerConfig>(&format!(
+//             r#"{}
+//             [types]
+//             number = "int"
+//             float = "float"
+//             bool = "bool"
+//             "#,
+//             extra
+//         ))
+//         .unwrap()
+//         .build()
+//         .await
+//         .unwrap();
+//         let coercer = coercer.as_function();
+//         coercer.transform_one(event).unwrap().into_log()
+//     }
+//
+//     #[tokio::test]
+//     async fn converts_valid_fields() {
+//         let log = parse_it("").await;
+//         assert_eq!(log["number"], Value::Integer(1234));
+//         assert_eq!(log["bool"], Value::Boolean(true));
+//     }
+//
+//     #[tokio::test]
+//     async fn leaves_unnamed_fields_as_is() {
+//         let log = parse_it("").await;
+//         assert_eq!(log["other"], Value::Bytes("no".into()));
+//     }
+//
+//     #[tokio::test]
+//     async fn drops_nonconvertible_fields() {
+//         let log = parse_it("").await;
+//         assert!(log.get("float").is_none());
+//     }
+//
+//     #[tokio::test]
+//     async fn drops_unspecified_fields() {
+//         let log = parse_it("drop_unspecified = true").await;
+//
+//         let mut expected = Event::new_empty_log();
+//         expected.as_mut_log().insert("bool", true);
+//         expected.as_mut_log().insert("number", 1234);
+//
+//         assert_eq!(log, expected.into_log());
+//     }
+// }

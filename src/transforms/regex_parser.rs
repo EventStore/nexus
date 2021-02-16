@@ -298,275 +298,275 @@ impl FunctionTransform for RegexParser {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::RegexParserConfig;
-    use crate::event::{LogEvent, Value};
-    use crate::{config::TransformConfig, Event};
-
-    #[test]
-    fn generate_config() {
-        crate::test_util::test_generate_config::<RegexParserConfig>();
-    }
-
-    async fn do_transform(event: &str, patterns: &str, config: &str) -> Option<LogEvent> {
-        let event = Event::from(event);
-        let mut parser = toml::from_str::<RegexParserConfig>(&format!(
-            r#"
-                patterns = {}
-                {}
-            "#,
-            patterns, config
-        ))
-        .unwrap()
-        .build()
-        .await
-        .unwrap();
-        let parser = parser.as_function();
-
-        parser.transform_one(event).map(|event| event.into_log())
-    }
-
-    #[tokio::test]
-    async fn adds_parsed_field_to_event() {
-        let log = do_transform(
-            "status=1234 time=5678",
-            r#"['status=(?P<status>\d+) time=(?P<time>\d+)']"#,
-            "drop_field = false",
-        )
-        .await
-        .unwrap();
-
-        assert_eq!(log["status"], "1234".into());
-        assert_eq!(log["time"], "5678".into());
-        assert!(log.get("message").is_some());
-    }
-
-    #[tokio::test]
-    async fn doesnt_do_anything_if_no_match() {
-        let log = do_transform(
-            "asdf1234",
-            r#"['status=(?P<status>\d+)']"#,
-            "drop_field = false",
-        )
-        .await
-        .unwrap();
-
-        assert_eq!(log.get("status"), None);
-        assert!(log.get("message").is_some());
-    }
-
-    #[tokio::test]
-    async fn does_drop_parsed_field() {
-        let log = do_transform(
-            "status=1234 time=5678",
-            r#"['status=(?P<status>\d+) time=(?P<time>\d+)']"#,
-            r#"field = "message""#,
-        )
-        .await
-        .unwrap();
-
-        assert_eq!(log["status"], "1234".into());
-        assert_eq!(log["time"], "5678".into());
-        assert!(log.get("message").is_none());
-    }
-
-    #[tokio::test]
-    async fn does_not_drop_same_name_parsed_field() {
-        let log = do_transform(
-            "status=1234 message=yes",
-            r#"['status=(?P<status>\d+) message=(?P<message>\S+)']"#,
-            r#"field = "message""#,
-        )
-        .await
-        .unwrap();
-
-        assert_eq!(log["status"], "1234".into());
-        assert_eq!(log["message"], "yes".into());
-    }
-
-    #[tokio::test]
-    async fn does_not_drop_field_if_no_match() {
-        let log = do_transform(
-            "asdf1234",
-            r#"['status=(?P<message>\S+)']"#,
-            r#"field = "message""#,
-        )
-        .await
-        .unwrap();
-
-        assert!(log.get(&"message").is_some());
-    }
-
-    #[tokio::test]
-    async fn respects_target_field() {
-        let mut log = do_transform(
-            "status=1234 time=5678",
-            r#"['status=(?P<status>\d+) time=(?P<time>\d+)']"#,
-            r#"
-               target_field = "prefix"
-               drop_field = false
-            "#,
-        )
-        .await
-        .unwrap();
-
-        // timestamp is unpredictable, don't compare it
-        log.remove("timestamp");
-        let log = serde_json::to_value(log.all_fields()).unwrap();
-        assert_eq!(
-            log,
-            serde_json::json!({
-                "message": "status=1234 time=5678",
-                "prefix.status": "1234",
-                "prefix.time": "5678",
-            })
-        );
-    }
-
-    #[tokio::test]
-    async fn preserves_target_field() {
-        let message = "status=1234 time=5678";
-        let log = do_transform(
-            message,
-            r#"['status=(?P<status>\d+) time=(?P<time>\d+)']"#,
-            r#"
-               target_field = "message"
-               overwrite_target = false
-            "#,
-        )
-        .await
-        .unwrap();
-
-        assert_eq!(log["message"], message.into());
-        assert_eq!(log.get("message.status"), None);
-        assert_eq!(log.get("message.time"), None);
-    }
-
-    #[tokio::test]
-    async fn overwrites_target_field() {
-        let mut log = do_transform(
-            "status=1234 time=5678",
-            r#"['status=(?P<status>\d+) time=(?P<time>\d+)']"#,
-            r#"
-               target_field = "message"
-               drop_field = false
-            "#,
-        )
-        .await
-        .unwrap();
-
-        // timestamp is unpredictable, don't compare it
-        log.remove("timestamp");
-        let log = serde_json::to_value(log.all_fields()).unwrap();
-        assert_eq!(
-            log,
-            serde_json::json!({
-                "message.status": "1234",
-                "message.time": "5678",
-            })
-        );
-    }
-
-    #[tokio::test]
-    async fn does_not_drop_event_if_match() {
-        let log = do_transform("asdf1234", r#"['asdf']"#, "drop_failed = true").await;
-        assert!(log.is_some());
-    }
-
-    #[tokio::test]
-    async fn does_drop_event_if_no_match() {
-        let log = do_transform("asdf1234", r#"['something']"#, "drop_failed = true").await;
-        assert!(log.is_none());
-    }
-
-    #[tokio::test]
-    async fn handles_valid_optional_capture() {
-        let log = do_transform("1234", r#"['(?P<status>\d+)?']"#, "")
-            .await
-            .unwrap();
-        assert_eq!(log["status"], "1234".into());
-    }
-
-    #[tokio::test]
-    async fn handles_missing_optional_capture() {
-        let log = do_transform("none", r#"['(?P<status>\d+)?']"#, "")
-            .await
-            .unwrap();
-        assert!(log.get("status").is_none());
-    }
-
-    #[tokio::test]
-    async fn coerces_fields_to_types() {
-        let log = do_transform(
-            "1234 6789.01 false",
-            r#"['(?P<status>\d+) (?P<time>[\d.]+) (?P<check>\S+)']"#,
-            r#"
-            [types]
-            status = "int"
-            time = "float"
-            check = "boolean"
-            "#,
-        )
-        .await
-        .expect("Failed to parse log");
-        assert_eq!(log["check"], Value::Boolean(false));
-        assert_eq!(log["status"], Value::Integer(1234));
-        assert_eq!(log["time"], Value::Float(6789.01));
-    }
-
-    #[tokio::test]
-    async fn chooses_first_of_multiple_matching_patterns() {
-        let log = do_transform(
-            "1234 235.42 true",
-            r#"[
-                '^(?P<id1>\d+)',
-                '^(?P<id2>\d+) (?P<time>[\d.]+) (?P<check>\S+)$',
-            ]"#,
-            r#"
-            drop_field = false
-            [types]
-            id1 = "int"
-            id2 = "int"
-            time = "float"
-            check = "boolean"
-            "#,
-        )
-        .await
-        .unwrap();
-
-        assert_eq!(log["id1"], Value::Integer(1234));
-        assert_eq!(log.get("id2"), None);
-        assert_eq!(log.get("time"), None);
-        assert_eq!(log.get("check"), None);
-        assert!(log.get("message").is_some());
-    }
-
-    #[tokio::test]
-    // https://github.com/timberio/vector/issues/3096
-    async fn correctly_maps_capture_groups_if_matching_pattern_is_not_first() {
-        let log = do_transform(
-            "match1234 235.42 true",
-            r#"[
-                '^nomatch(?P<id1>\d+)$',
-                '^match(?P<id2>\d+) (?P<time>[\d.]+) (?P<check>\S+)$',
-            ]"#,
-            r#"
-            drop_field = false
-            [types]
-            id1 = "int"
-            id2 = "int"
-            time = "float"
-            check = "boolean"
-            "#,
-        )
-        .await
-        .unwrap();
-
-        assert_eq!(log.get("id1"), None);
-        assert_eq!(log["id2"], Value::Integer(1234));
-        assert_eq!(log["time"], Value::Float(235.42));
-        assert_eq!(log["check"], Value::Boolean(true));
-        assert!(log.get("message").is_some());
-    }
-}
+// #[cfg(test)]
+// mod tests {
+//     use super::RegexParserConfig;
+//     use crate::event::{LogEvent, Value};
+//     use crate::{config::TransformConfig, Event};
+//
+//     #[test]
+//     fn generate_config() {
+//         crate::test_util::test_generate_config::<RegexParserConfig>();
+//     }
+//
+//     async fn do_transform(event: &str, patterns: &str, config: &str) -> Option<LogEvent> {
+//         let event = Event::from(event);
+//         let mut parser = toml::from_str::<RegexParserConfig>(&format!(
+//             r#"
+//                 patterns = {}
+//                 {}
+//             "#,
+//             patterns, config
+//         ))
+//         .unwrap()
+//         .build()
+//         .await
+//         .unwrap();
+//         let parser = parser.as_function();
+//
+//         parser.transform_one(event).map(|event| event.into_log())
+//     }
+//
+//     #[tokio::test]
+//     async fn adds_parsed_field_to_event() {
+//         let log = do_transform(
+//             "status=1234 time=5678",
+//             r#"['status=(?P<status>\d+) time=(?P<time>\d+)']"#,
+//             "drop_field = false",
+//         )
+//         .await
+//         .unwrap();
+//
+//         assert_eq!(log["status"], "1234".into());
+//         assert_eq!(log["time"], "5678".into());
+//         assert!(log.get("message").is_some());
+//     }
+//
+//     #[tokio::test]
+//     async fn doesnt_do_anything_if_no_match() {
+//         let log = do_transform(
+//             "asdf1234",
+//             r#"['status=(?P<status>\d+)']"#,
+//             "drop_field = false",
+//         )
+//         .await
+//         .unwrap();
+//
+//         assert_eq!(log.get("status"), None);
+//         assert!(log.get("message").is_some());
+//     }
+//
+//     #[tokio::test]
+//     async fn does_drop_parsed_field() {
+//         let log = do_transform(
+//             "status=1234 time=5678",
+//             r#"['status=(?P<status>\d+) time=(?P<time>\d+)']"#,
+//             r#"field = "message""#,
+//         )
+//         .await
+//         .unwrap();
+//
+//         assert_eq!(log["status"], "1234".into());
+//         assert_eq!(log["time"], "5678".into());
+//         assert!(log.get("message").is_none());
+//     }
+//
+//     #[tokio::test]
+//     async fn does_not_drop_same_name_parsed_field() {
+//         let log = do_transform(
+//             "status=1234 message=yes",
+//             r#"['status=(?P<status>\d+) message=(?P<message>\S+)']"#,
+//             r#"field = "message""#,
+//         )
+//         .await
+//         .unwrap();
+//
+//         assert_eq!(log["status"], "1234".into());
+//         assert_eq!(log["message"], "yes".into());
+//     }
+//
+//     #[tokio::test]
+//     async fn does_not_drop_field_if_no_match() {
+//         let log = do_transform(
+//             "asdf1234",
+//             r#"['status=(?P<message>\S+)']"#,
+//             r#"field = "message""#,
+//         )
+//         .await
+//         .unwrap();
+//
+//         assert!(log.get(&"message").is_some());
+//     }
+//
+//     #[tokio::test]
+//     async fn respects_target_field() {
+//         let mut log = do_transform(
+//             "status=1234 time=5678",
+//             r#"['status=(?P<status>\d+) time=(?P<time>\d+)']"#,
+//             r#"
+//                target_field = "prefix"
+//                drop_field = false
+//             "#,
+//         )
+//         .await
+//         .unwrap();
+//
+//         // timestamp is unpredictable, don't compare it
+//         log.remove("timestamp");
+//         let log = serde_json::to_value(log.all_fields()).unwrap();
+//         assert_eq!(
+//             log,
+//             serde_json::json!({
+//                 "message": "status=1234 time=5678",
+//                 "prefix.status": "1234",
+//                 "prefix.time": "5678",
+//             })
+//         );
+//     }
+//
+//     #[tokio::test]
+//     async fn preserves_target_field() {
+//         let message = "status=1234 time=5678";
+//         let log = do_transform(
+//             message,
+//             r#"['status=(?P<status>\d+) time=(?P<time>\d+)']"#,
+//             r#"
+//                target_field = "message"
+//                overwrite_target = false
+//             "#,
+//         )
+//         .await
+//         .unwrap();
+//
+//         assert_eq!(log["message"], message.into());
+//         assert_eq!(log.get("message.status"), None);
+//         assert_eq!(log.get("message.time"), None);
+//     }
+//
+//     #[tokio::test]
+//     async fn overwrites_target_field() {
+//         let mut log = do_transform(
+//             "status=1234 time=5678",
+//             r#"['status=(?P<status>\d+) time=(?P<time>\d+)']"#,
+//             r#"
+//                target_field = "message"
+//                drop_field = false
+//             "#,
+//         )
+//         .await
+//         .unwrap();
+//
+//         // timestamp is unpredictable, don't compare it
+//         log.remove("timestamp");
+//         let log = serde_json::to_value(log.all_fields()).unwrap();
+//         assert_eq!(
+//             log,
+//             serde_json::json!({
+//                 "message.status": "1234",
+//                 "message.time": "5678",
+//             })
+//         );
+//     }
+//
+//     #[tokio::test]
+//     async fn does_not_drop_event_if_match() {
+//         let log = do_transform("asdf1234", r#"['asdf']"#, "drop_failed = true").await;
+//         assert!(log.is_some());
+//     }
+//
+//     #[tokio::test]
+//     async fn does_drop_event_if_no_match() {
+//         let log = do_transform("asdf1234", r#"['something']"#, "drop_failed = true").await;
+//         assert!(log.is_none());
+//     }
+//
+//     #[tokio::test]
+//     async fn handles_valid_optional_capture() {
+//         let log = do_transform("1234", r#"['(?P<status>\d+)?']"#, "")
+//             .await
+//             .unwrap();
+//         assert_eq!(log["status"], "1234".into());
+//     }
+//
+//     #[tokio::test]
+//     async fn handles_missing_optional_capture() {
+//         let log = do_transform("none", r#"['(?P<status>\d+)?']"#, "")
+//             .await
+//             .unwrap();
+//         assert!(log.get("status").is_none());
+//     }
+//
+//     #[tokio::test]
+//     async fn coerces_fields_to_types() {
+//         let log = do_transform(
+//             "1234 6789.01 false",
+//             r#"['(?P<status>\d+) (?P<time>[\d.]+) (?P<check>\S+)']"#,
+//             r#"
+//             [types]
+//             status = "int"
+//             time = "float"
+//             check = "boolean"
+//             "#,
+//         )
+//         .await
+//         .expect("Failed to parse log");
+//         assert_eq!(log["check"], Value::Boolean(false));
+//         assert_eq!(log["status"], Value::Integer(1234));
+//         assert_eq!(log["time"], Value::Float(6789.01));
+//     }
+//
+//     #[tokio::test]
+//     async fn chooses_first_of_multiple_matching_patterns() {
+//         let log = do_transform(
+//             "1234 235.42 true",
+//             r#"[
+//                 '^(?P<id1>\d+)',
+//                 '^(?P<id2>\d+) (?P<time>[\d.]+) (?P<check>\S+)$',
+//             ]"#,
+//             r#"
+//             drop_field = false
+//             [types]
+//             id1 = "int"
+//             id2 = "int"
+//             time = "float"
+//             check = "boolean"
+//             "#,
+//         )
+//         .await
+//         .unwrap();
+//
+//         assert_eq!(log["id1"], Value::Integer(1234));
+//         assert_eq!(log.get("id2"), None);
+//         assert_eq!(log.get("time"), None);
+//         assert_eq!(log.get("check"), None);
+//         assert!(log.get("message").is_some());
+//     }
+//
+//     #[tokio::test]
+//     // https://github.com/timberio/vector/issues/3096
+//     async fn correctly_maps_capture_groups_if_matching_pattern_is_not_first() {
+//         let log = do_transform(
+//             "match1234 235.42 true",
+//             r#"[
+//                 '^nomatch(?P<id1>\d+)$',
+//                 '^match(?P<id2>\d+) (?P<time>[\d.]+) (?P<check>\S+)$',
+//             ]"#,
+//             r#"
+//             drop_field = false
+//             [types]
+//             id1 = "int"
+//             id2 = "int"
+//             time = "float"
+//             check = "boolean"
+//             "#,
+//         )
+//         .await
+//         .unwrap();
+//
+//         assert_eq!(log.get("id1"), None);
+//         assert_eq!(log["id2"], Value::Integer(1234));
+//         assert_eq!(log["time"], Value::Float(235.42));
+//         assert_eq!(log["check"], Value::Boolean(true));
+//         assert!(log.get("message").is_some());
+//     }
+// }

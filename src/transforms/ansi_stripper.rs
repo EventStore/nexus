@@ -75,53 +75,53 @@ impl FunctionTransform for AnsiStripper {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::event::{Event, Value};
-
-    #[test]
-    fn generate_config() {
-        crate::test_util::test_generate_config::<AnsiStripperConfig>();
-    }
-
-    macro_rules! assert_foo_bar {
-        ($($in:expr),* $(,)?) => {
-            $(
-                let mut transform = AnsiStripper {
-                    field: "message".into(),
-                };
-
-                let event = Event::from($in);
-                let event = transform.transform_one(event).unwrap();
-
-                assert_eq!(
-                    event.into_log().remove(crate::config::log_schema().message_key()).unwrap(),
-                    Value::from("foo bar")
-                );
-            )+
-        };
-    }
-
-    #[test]
-    fn ansi_stripper_transform() {
-        assert_foo_bar![
-            "\x1b[3;4Hfoo bar",
-            "\x1b[3;4ffoo bar",
-            "\x1b[3Afoo bar",
-            "\x1b[3Bfoo bar",
-            "\x1b[3Cfoo bar",
-            "\x1b[3Dfoo bar",
-            "\x1b[sfoo bar",
-            "\x1b[ufoo bar",
-            "\x1b[2Jfoo bar",
-            "\x1b[Kfoo bar",
-            "\x1b[32mfoo\x1b[m bar",
-            "\x1b[46mfoo\x1b[0m bar",
-            "foo \x1b[46;41mbar",
-            "\x1b[=3hfoo bar",
-            "\x1b[=3lfoo bar",
-            "foo bar",
-        ];
-    }
-}
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     use crate::event::{Event, Value};
+//
+//     #[test]
+//     fn generate_config() {
+//         crate::test_util::test_generate_config::<AnsiStripperConfig>();
+//     }
+//
+//     macro_rules! assert_foo_bar {
+//         ($($in:expr),* $(,)?) => {
+//             $(
+//                 let mut transform = AnsiStripper {
+//                     field: "message".into(),
+//                 };
+//
+//                 let event = Event::from($in);
+//                 let event = transform.transform_one(event).unwrap();
+//
+//                 assert_eq!(
+//                     event.into_log().remove(crate::config::log_schema().message_key()).unwrap(),
+//                     Value::from("foo bar")
+//                 );
+//             )+
+//         };
+//     }
+//
+//     #[test]
+//     fn ansi_stripper_transform() {
+//         assert_foo_bar![
+//             "\x1b[3;4Hfoo bar",
+//             "\x1b[3;4ffoo bar",
+//             "\x1b[3Afoo bar",
+//             "\x1b[3Bfoo bar",
+//             "\x1b[3Cfoo bar",
+//             "\x1b[3Dfoo bar",
+//             "\x1b[sfoo bar",
+//             "\x1b[ufoo bar",
+//             "\x1b[2Jfoo bar",
+//             "\x1b[Kfoo bar",
+//             "\x1b[32mfoo\x1b[m bar",
+//             "\x1b[46mfoo\x1b[0m bar",
+//             "foo \x1b[46;41mbar",
+//             "\x1b[=3hfoo bar",
+//             "\x1b[=3lfoo bar",
+//             "foo bar",
+//         ];
+//     }
+// }

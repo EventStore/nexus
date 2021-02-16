@@ -3,68 +3,68 @@ use snafu::Snafu;
 
 pub mod util;
 
-#[cfg(feature = "transforms-add_fields")]
+// #[cfg(feature = "transforms-add_fields")]
 pub mod add_fields;
-#[cfg(feature = "transforms-add_tags")]
+// #[cfg(feature = "transforms-add_tags")]
 pub mod add_tags;
-#[cfg(feature = "transforms-ansi_stripper")]
+// #[cfg(feature = "transforms-ansi_stripper")]
 pub mod ansi_stripper;
-#[cfg(feature = "transforms-aws_cloudwatch_logs_subscription_parser")]
+// #[cfg(feature = "transforms-aws_cloudwatch_logs_subscription_parser")]
 pub mod aws_cloudwatch_logs_subscription_parser;
-#[cfg(feature = "transforms-aws_ec2_metadata")]
+// #[cfg(feature = "transforms-aws_ec2_metadata")]
 pub mod aws_ec2_metadata;
-#[cfg(feature = "transforms-coercer")]
+// #[cfg(feature = "transforms-coercer")]
 pub mod coercer;
-#[cfg(feature = "transforms-concat")]
+// #[cfg(feature = "transforms-concat")]
 pub mod concat;
-#[cfg(feature = "transforms-dedupe")]
+// #[cfg(feature = "transforms-dedupe")]
 pub mod dedupe;
-#[cfg(feature = "transforms-field_filter")]
+// #[cfg(feature = "transforms-field_filter")]
 pub mod field_filter;
-#[cfg(feature = "transforms-filter")]
+// #[cfg(feature = "transforms-filter")]
 pub mod filter;
-#[cfg(feature = "transforms-geoip")]
+// #[cfg(feature = "transforms-geoip")]
 pub mod geoip;
-#[cfg(feature = "transforms-grok_parser")]
+// #[cfg(feature = "transforms-grok_parser")]
 pub mod grok_parser;
-#[cfg(feature = "transforms-json_parser")]
+// #[cfg(feature = "transforms-json_parser")]
 pub mod json_parser;
-#[cfg(feature = "transforms-key_value_parser")]
+// #[cfg(feature = "transforms-key_value_parser")]
 pub mod key_value_parser;
-#[cfg(feature = "transforms-log_to_metric")]
+// #[cfg(feature = "transforms-log_to_metric")]
 pub mod log_to_metric;
-#[cfg(feature = "transforms-logfmt_parser")]
+// #[cfg(feature = "transforms-logfmt_parser")]
 pub mod logfmt_parser;
-#[cfg(feature = "transforms-lua")]
+// #[cfg(feature = "transforms-lua")]
 pub mod lua;
-#[cfg(feature = "transforms-merge")]
+// #[cfg(feature = "transforms-merge")]
 pub mod merge;
 // #[cfg(feature = "transforms-metric_to_log")]
 pub mod metric_to_log;
-#[cfg(feature = "transforms-reduce")]
+// #[cfg(feature = "transforms-reduce")]
 pub mod reduce;
-#[cfg(feature = "transforms-regex_parser")]
+// #[cfg(feature = "transforms-regex_parser")]
 pub mod regex_parser;
-#[cfg(feature = "transforms-remap")]
+// #[cfg(feature = "transforms-remap")]
 pub mod remap;
-#[cfg(feature = "transforms-remove_fields")]
+// #[cfg(feature = "transforms-remove_fields")]
 pub mod remove_fields;
-#[cfg(feature = "transforms-remove_tags")]
+// #[cfg(feature = "transforms-remove_tags")]
 pub mod remove_tags;
-#[cfg(feature = "transforms-rename_fields")]
+// #[cfg(feature = "transforms-rename_fields")]
 pub mod rename_fields;
-#[cfg(feature = "transforms-sampler")]
+// #[cfg(feature = "transforms-sampler")]
 pub mod sampler;
-#[cfg(feature = "transforms-split")]
+// #[cfg(feature = "transforms-split")]
 pub mod split;
-#[cfg(feature = "transforms-swimlanes")]
+// #[cfg(feature = "transforms-swimlanes")]
 pub mod swimlanes;
-#[cfg(feature = "transforms-tag_cardinality_limit")]
+// #[cfg(feature = "transforms-tag_cardinality_limit")]
 pub mod tag_cardinality_limit;
-#[cfg(feature = "transforms-tokenizer")]
+// #[cfg(feature = "transforms-tokenizer")]
 pub mod tokenizer;
-#[cfg(feature = "wasm")]
-pub mod wasm;
+// #[cfg(feature = "wasm")]
+// pub mod wasm;
 
 /// Transforms come in two variants. Functions, or tasks.
 ///

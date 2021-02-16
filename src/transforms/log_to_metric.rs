@@ -371,439 +371,439 @@ impl FunctionTransform for LogToMetric {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{
-        config::log_schema,
-        event::metric::{Metric, MetricKind, MetricValue, StatisticKind},
-        event::Event,
-    };
-    use chrono::{offset::TimeZone, DateTime, Utc};
-
-    #[test]
-    fn generate_config() {
-        crate::test_util::test_generate_config::<LogToMetricConfig>();
-    }
-
-    fn parse_config(s: &str) -> LogToMetricConfig {
-        toml::from_str(s).unwrap()
-    }
-
-    fn ts() -> DateTime<Utc> {
-        Utc.ymd(2018, 11, 14).and_hms_nano(8, 9, 10, 11)
-    }
-
-    fn create_event(key: &str, value: &str) -> Event {
-        let mut log = Event::from("i am a log");
-        log.as_mut_log().insert(key, value);
-        log.as_mut_log().insert(log_schema().timestamp_key(), ts());
-        log
-    }
-
-    #[test]
-    fn count_http_status_codes() {
-        let config = parse_config(
-            r#"
-            [[metrics]]
-            type = "counter"
-            field = "status"
-            "#,
-        );
-
-        let event = create_event("status", "42");
-        let mut transform = LogToMetric::new(config);
-        let metric = transform.transform_one(event).unwrap();
-
-        assert_eq!(
-            metric.into_metric(),
-            Metric {
-                name: "status".into(),
-                namespace: None,
-                timestamp: Some(ts()),
-                tags: None,
-                kind: MetricKind::Incremental,
-                value: MetricValue::Counter { value: 1.0 },
-            }
-        );
-    }
-
-    #[test]
-    fn count_http_requests_with_tags() {
-        let config = parse_config(
-            r#"
-            [[metrics]]
-            type = "counter"
-            field = "message"
-            name = "http_requests_total"
-            namespace = "app"
-            tags = {method = "{{method}}", code = "{{code}}", missing_tag = "{{unknown}}", host = "localhost"}
-            "#,
-        );
-
-        let mut event = create_event("message", "i am log");
-        event.as_mut_log().insert("method", "post");
-        event.as_mut_log().insert("code", "200");
-
-        let mut transform = LogToMetric::new(config);
-        let metric = transform.transform_one(event).unwrap();
-
-        assert_eq!(
-            metric.into_metric(),
-            Metric {
-                name: "http_requests_total".into(),
-                namespace: Some("app".into()),
-                timestamp: Some(ts()),
-                tags: Some(
-                    vec![
-                        ("method".to_owned(), "post".to_owned()),
-                        ("code".to_owned(), "200".to_owned()),
-                        ("host".to_owned(), "localhost".to_owned()),
-                    ]
-                    .into_iter()
-                    .collect(),
-                ),
-                kind: MetricKind::Incremental,
-                value: MetricValue::Counter { value: 1.0 },
-            }
-        );
-    }
-
-    #[test]
-    fn count_exceptions() {
-        let config = parse_config(
-            r#"
-            [[metrics]]
-            type = "counter"
-            field = "backtrace"
-            name = "exception_total"
-            "#,
-        );
-
-        let event = create_event("backtrace", "message");
-        let mut transform = LogToMetric::new(config);
-        let metric = transform.transform_one(event).unwrap();
-
-        assert_eq!(
-            metric.into_metric(),
-            Metric {
-                name: "exception_total".into(),
-                namespace: None,
-                timestamp: Some(ts()),
-                tags: None,
-                kind: MetricKind::Incremental,
-                value: MetricValue::Counter { value: 1.0 },
-            }
-        );
-    }
-
-    #[test]
-    fn count_exceptions_no_match() {
-        let config = parse_config(
-            r#"
-            [[metrics]]
-            type = "counter"
-            field = "backtrace"
-            name = "exception_total"
-            "#,
-        );
-
-        let event = create_event("success", "42");
-        let mut transform = LogToMetric::new(config);
-
-        assert_eq!(transform.transform_one(event), None);
-    }
-
-    #[test]
-    fn sum_order_amounts() {
-        let config = parse_config(
-            r#"
-            [[metrics]]
-            type = "counter"
-            field = "amount"
-            name = "amount_total"
-            increment_by_value = true
-            "#,
-        );
-
-        let event = create_event("amount", "33.99");
-        let mut transform = LogToMetric::new(config);
-        let metric = transform.transform_one(event).unwrap();
-
-        assert_eq!(
-            metric.into_metric(),
-            Metric {
-                name: "amount_total".into(),
-                namespace: None,
-                timestamp: Some(ts()),
-                tags: None,
-                kind: MetricKind::Incremental,
-                value: MetricValue::Counter { value: 33.99 },
-            }
-        );
-    }
-
-    #[test]
-    fn memory_usage_gauge() {
-        let config = parse_config(
-            r#"
-            [[metrics]]
-            type = "gauge"
-            field = "memory_rss"
-            name = "memory_rss_bytes"
-            "#,
-        );
-
-        let event = create_event("memory_rss", "123");
-        let mut transform = LogToMetric::new(config);
-        let metric = transform.transform_one(event).unwrap();
-
-        assert_eq!(
-            metric.into_metric(),
-            Metric {
-                name: "memory_rss_bytes".into(),
-                namespace: None,
-                timestamp: Some(ts()),
-                tags: None,
-                kind: MetricKind::Absolute,
-                value: MetricValue::Gauge { value: 123.0 },
-            }
-        );
-    }
-
-    #[test]
-    fn parse_failure() {
-        let config = parse_config(
-            r#"
-            [[metrics]]
-            type = "counter"
-            field = "status"
-            name = "status_total"
-            increment_by_value = true
-            "#,
-        );
-
-        let event = create_event("status", "not a number");
-        let mut transform = LogToMetric::new(config);
-
-        assert_eq!(transform.transform_one(event), None);
-    }
-
-    #[test]
-    fn missing_field() {
-        let config = parse_config(
-            r#"
-            [[metrics]]
-            type = "counter"
-            field = "status"
-            name = "status_total"
-            "#,
-        );
-
-        let event = create_event("not foo", "not a number");
-        let mut transform = LogToMetric::new(config);
-
-        assert_eq!(transform.transform_one(event), None);
-    }
-
-    #[test]
-    fn multiple_metrics() {
-        let config = parse_config(
-            r#"
-            [[metrics]]
-            type = "counter"
-            field = "status"
-
-            [[metrics]]
-            type = "counter"
-            field = "backtrace"
-            name = "exception_total"
-            "#,
-        );
-
-        let mut event = Event::from("i am a log");
-        event
-            .as_mut_log()
-            .insert(log_schema().timestamp_key(), ts());
-        event.as_mut_log().insert("status", "42");
-        event.as_mut_log().insert("backtrace", "message");
-
-        let mut transform = LogToMetric::new(config);
-
-        let mut output = Vec::new();
-        transform.transform(&mut output, event);
-        assert_eq!(2, output.len());
-        assert_eq!(
-            output.pop().unwrap().into_metric(),
-            Metric {
-                name: "exception_total".into(),
-                namespace: None,
-                timestamp: Some(ts()),
-                tags: None,
-                kind: MetricKind::Incremental,
-                value: MetricValue::Counter { value: 1.0 },
-            }
-        );
-        assert_eq!(
-            output.pop().unwrap().into_metric(),
-            Metric {
-                name: "status".into(),
-                namespace: None,
-                timestamp: Some(ts()),
-                tags: None,
-                kind: MetricKind::Incremental,
-                value: MetricValue::Counter { value: 1.0 },
-            }
-        );
-    }
-
-    #[test]
-    fn multiple_metrics_with_multiple_templates() {
-        let config = parse_config(
-            r#"
-            [[metrics]]
-            type = "set"
-            field = "status"
-            name = "{{host}}_{{worker}}_status_set"
-
-            [[metrics]]
-            type = "counter"
-            field = "backtrace"
-            name = "{{service}}_exception_total"
-            namespace = "{{host}}"
-            "#,
-        );
-
-        let mut event = Event::from("i am a log");
-        event
-            .as_mut_log()
-            .insert(log_schema().timestamp_key(), ts());
-        event.as_mut_log().insert("status", "42");
-        event.as_mut_log().insert("backtrace", "message");
-        event.as_mut_log().insert("host", "local");
-        event.as_mut_log().insert("worker", "abc");
-        event.as_mut_log().insert("service", "xyz");
-
-        let mut transform = LogToMetric::new(config);
-
-        let mut output = Vec::new();
-        transform.transform(&mut output, event);
-        assert_eq!(2, output.len());
-        assert_eq!(
-            output.pop().unwrap().into_metric(),
-            Metric {
-                name: "xyz_exception_total".into(),
-                namespace: Some("local".into()),
-                timestamp: Some(ts()),
-                tags: None,
-                kind: MetricKind::Incremental,
-                value: MetricValue::Counter { value: 1.0 },
-            }
-        );
-        assert_eq!(
-            output.pop().unwrap().into_metric(),
-            Metric {
-                name: "local_abc_status_set".into(),
-                namespace: None,
-                timestamp: Some(ts()),
-                tags: None,
-                kind: MetricKind::Incremental,
-                value: MetricValue::Set {
-                    values: vec!["42".into()].into_iter().collect()
-                },
-            }
-        );
-    }
-
-    #[test]
-    fn user_ip_set() {
-        let config = parse_config(
-            r#"
-            [[metrics]]
-            type = "set"
-            field = "user_ip"
-            name = "unique_user_ip"
-            "#,
-        );
-
-        let event = create_event("user_ip", "1.2.3.4");
-        let mut transform = LogToMetric::new(config);
-        let metric = transform.transform_one(event).unwrap();
-
-        assert_eq!(
-            metric.into_metric(),
-            Metric {
-                name: "unique_user_ip".into(),
-                namespace: None,
-                timestamp: Some(ts()),
-                tags: None,
-                kind: MetricKind::Incremental,
-                value: MetricValue::Set {
-                    values: vec!["1.2.3.4".into()].into_iter().collect()
-                },
-            }
-        );
-    }
-
-    #[test]
-    fn response_time_histogram() {
-        let config = parse_config(
-            r#"
-            [[metrics]]
-            type = "histogram"
-            field = "response_time"
-            "#,
-        );
-
-        let event = create_event("response_time", "2.5");
-        let mut transform = LogToMetric::new(config);
-        let metric = transform.transform_one(event).unwrap();
-
-        assert_eq!(
-            metric.into_metric(),
-            Metric {
-                name: "response_time".into(),
-                namespace: None,
-                timestamp: Some(ts()),
-                tags: None,
-                kind: MetricKind::Incremental,
-                value: MetricValue::Distribution {
-                    values: vec![2.5],
-                    sample_rates: vec![1],
-                    statistic: StatisticKind::Histogram
-                },
-            }
-        );
-    }
-
-    #[test]
-    fn response_time_summary() {
-        let config = parse_config(
-            r#"
-            [[metrics]]
-            type = "summary"
-            field = "response_time"
-            "#,
-        );
-
-        let event = create_event("response_time", "2.5");
-        let mut transform = LogToMetric::new(config);
-        let metric = transform.transform_one(event).unwrap();
-
-        assert_eq!(
-            metric.into_metric(),
-            Metric {
-                name: "response_time".into(),
-                namespace: None,
-                timestamp: Some(ts()),
-                tags: None,
-                kind: MetricKind::Incremental,
-                value: MetricValue::Distribution {
-                    values: vec![2.5],
-                    sample_rates: vec![1],
-                    statistic: StatisticKind::Summary
-                },
-            }
-        );
-    }
-}
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     use crate::{
+//         config::log_schema,
+//         event::metric::{Metric, MetricKind, MetricValue, StatisticKind},
+//         event::Event,
+//     };
+//     use chrono::{offset::TimeZone, DateTime, Utc};
+//
+//     #[test]
+//     fn generate_config() {
+//         crate::test_util::test_generate_config::<LogToMetricConfig>();
+//     }
+//
+//     fn parse_config(s: &str) -> LogToMetricConfig {
+//         toml::from_str(s).unwrap()
+//     }
+//
+//     fn ts() -> DateTime<Utc> {
+//         Utc.ymd(2018, 11, 14).and_hms_nano(8, 9, 10, 11)
+//     }
+//
+//     fn create_event(key: &str, value: &str) -> Event {
+//         let mut log = Event::from("i am a log");
+//         log.as_mut_log().insert(key, value);
+//         log.as_mut_log().insert(log_schema().timestamp_key(), ts());
+//         log
+//     }
+//
+//     #[test]
+//     fn count_http_status_codes() {
+//         let config = parse_config(
+//             r#"
+//             [[metrics]]
+//             type = "counter"
+//             field = "status"
+//             "#,
+//         );
+//
+//         let event = create_event("status", "42");
+//         let mut transform = LogToMetric::new(config);
+//         let metric = transform.transform_one(event).unwrap();
+//
+//         assert_eq!(
+//             metric.into_metric(),
+//             Metric {
+//                 name: "status".into(),
+//                 namespace: None,
+//                 timestamp: Some(ts()),
+//                 tags: None,
+//                 kind: MetricKind::Incremental,
+//                 value: MetricValue::Counter { value: 1.0 },
+//             }
+//         );
+//     }
+//
+//     #[test]
+//     fn count_http_requests_with_tags() {
+//         let config = parse_config(
+//             r#"
+//             [[metrics]]
+//             type = "counter"
+//             field = "message"
+//             name = "http_requests_total"
+//             namespace = "app"
+//             tags = {method = "{{method}}", code = "{{code}}", missing_tag = "{{unknown}}", host = "localhost"}
+//             "#,
+//         );
+//
+//         let mut event = create_event("message", "i am log");
+//         event.as_mut_log().insert("method", "post");
+//         event.as_mut_log().insert("code", "200");
+//
+//         let mut transform = LogToMetric::new(config);
+//         let metric = transform.transform_one(event).unwrap();
+//
+//         assert_eq!(
+//             metric.into_metric(),
+//             Metric {
+//                 name: "http_requests_total".into(),
+//                 namespace: Some("app".into()),
+//                 timestamp: Some(ts()),
+//                 tags: Some(
+//                     vec![
+//                         ("method".to_owned(), "post".to_owned()),
+//                         ("code".to_owned(), "200".to_owned()),
+//                         ("host".to_owned(), "localhost".to_owned()),
+//                     ]
+//                     .into_iter()
+//                     .collect(),
+//                 ),
+//                 kind: MetricKind::Incremental,
+//                 value: MetricValue::Counter { value: 1.0 },
+//             }
+//         );
+//     }
+//
+//     #[test]
+//     fn count_exceptions() {
+//         let config = parse_config(
+//             r#"
+//             [[metrics]]
+//             type = "counter"
+//             field = "backtrace"
+//             name = "exception_total"
+//             "#,
+//         );
+//
+//         let event = create_event("backtrace", "message");
+//         let mut transform = LogToMetric::new(config);
+//         let metric = transform.transform_one(event).unwrap();
+//
+//         assert_eq!(
+//             metric.into_metric(),
+//             Metric {
+//                 name: "exception_total".into(),
+//                 namespace: None,
+//                 timestamp: Some(ts()),
+//                 tags: None,
+//                 kind: MetricKind::Incremental,
+//                 value: MetricValue::Counter { value: 1.0 },
+//             }
+//         );
+//     }
+//
+//     #[test]
+//     fn count_exceptions_no_match() {
+//         let config = parse_config(
+//             r#"
+//             [[metrics]]
+//             type = "counter"
+//             field = "backtrace"
+//             name = "exception_total"
+//             "#,
+//         );
+//
+//         let event = create_event("success", "42");
+//         let mut transform = LogToMetric::new(config);
+//
+//         assert_eq!(transform.transform_one(event), None);
+//     }
+//
+//     #[test]
+//     fn sum_order_amounts() {
+//         let config = parse_config(
+//             r#"
+//             [[metrics]]
+//             type = "counter"
+//             field = "amount"
+//             name = "amount_total"
+//             increment_by_value = true
+//             "#,
+//         );
+//
+//         let event = create_event("amount", "33.99");
+//         let mut transform = LogToMetric::new(config);
+//         let metric = transform.transform_one(event).unwrap();
+//
+//         assert_eq!(
+//             metric.into_metric(),
+//             Metric {
+//                 name: "amount_total".into(),
+//                 namespace: None,
+//                 timestamp: Some(ts()),
+//                 tags: None,
+//                 kind: MetricKind::Incremental,
+//                 value: MetricValue::Counter { value: 33.99 },
+//             }
+//         );
+//     }
+//
+//     #[test]
+//     fn memory_usage_gauge() {
+//         let config = parse_config(
+//             r#"
+//             [[metrics]]
+//             type = "gauge"
+//             field = "memory_rss"
+//             name = "memory_rss_bytes"
+//             "#,
+//         );
+//
+//         let event = create_event("memory_rss", "123");
+//         let mut transform = LogToMetric::new(config);
+//         let metric = transform.transform_one(event).unwrap();
+//
+//         assert_eq!(
+//             metric.into_metric(),
+//             Metric {
+//                 name: "memory_rss_bytes".into(),
+//                 namespace: None,
+//                 timestamp: Some(ts()),
+//                 tags: None,
+//                 kind: MetricKind::Absolute,
+//                 value: MetricValue::Gauge { value: 123.0 },
+//             }
+//         );
+//     }
+//
+//     #[test]
+//     fn parse_failure() {
+//         let config = parse_config(
+//             r#"
+//             [[metrics]]
+//             type = "counter"
+//             field = "status"
+//             name = "status_total"
+//             increment_by_value = true
+//             "#,
+//         );
+//
+//         let event = create_event("status", "not a number");
+//         let mut transform = LogToMetric::new(config);
+//
+//         assert_eq!(transform.transform_one(event), None);
+//     }
+//
+//     #[test]
+//     fn missing_field() {
+//         let config = parse_config(
+//             r#"
+//             [[metrics]]
+//             type = "counter"
+//             field = "status"
+//             name = "status_total"
+//             "#,
+//         );
+//
+//         let event = create_event("not foo", "not a number");
+//         let mut transform = LogToMetric::new(config);
+//
+//         assert_eq!(transform.transform_one(event), None);
+//     }
+//
+//     #[test]
+//     fn multiple_metrics() {
+//         let config = parse_config(
+//             r#"
+//             [[metrics]]
+//             type = "counter"
+//             field = "status"
+//
+//             [[metrics]]
+//             type = "counter"
+//             field = "backtrace"
+//             name = "exception_total"
+//             "#,
+//         );
+//
+//         let mut event = Event::from("i am a log");
+//         event
+//             .as_mut_log()
+//             .insert(log_schema().timestamp_key(), ts());
+//         event.as_mut_log().insert("status", "42");
+//         event.as_mut_log().insert("backtrace", "message");
+//
+//         let mut transform = LogToMetric::new(config);
+//
+//         let mut output = Vec::new();
+//         transform.transform(&mut output, event);
+//         assert_eq!(2, output.len());
+//         assert_eq!(
+//             output.pop().unwrap().into_metric(),
+//             Metric {
+//                 name: "exception_total".into(),
+//                 namespace: None,
+//                 timestamp: Some(ts()),
+//                 tags: None,
+//                 kind: MetricKind::Incremental,
+//                 value: MetricValue::Counter { value: 1.0 },
+//             }
+//         );
+//         assert_eq!(
+//             output.pop().unwrap().into_metric(),
+//             Metric {
+//                 name: "status".into(),
+//                 namespace: None,
+//                 timestamp: Some(ts()),
+//                 tags: None,
+//                 kind: MetricKind::Incremental,
+//                 value: MetricValue::Counter { value: 1.0 },
+//             }
+//         );
+//     }
+//
+//     #[test]
+//     fn multiple_metrics_with_multiple_templates() {
+//         let config = parse_config(
+//             r#"
+//             [[metrics]]
+//             type = "set"
+//             field = "status"
+//             name = "{{host}}_{{worker}}_status_set"
+//
+//             [[metrics]]
+//             type = "counter"
+//             field = "backtrace"
+//             name = "{{service}}_exception_total"
+//             namespace = "{{host}}"
+//             "#,
+//         );
+//
+//         let mut event = Event::from("i am a log");
+//         event
+//             .as_mut_log()
+//             .insert(log_schema().timestamp_key(), ts());
+//         event.as_mut_log().insert("status", "42");
+//         event.as_mut_log().insert("backtrace", "message");
+//         event.as_mut_log().insert("host", "local");
+//         event.as_mut_log().insert("worker", "abc");
+//         event.as_mut_log().insert("service", "xyz");
+//
+//         let mut transform = LogToMetric::new(config);
+//
+//         let mut output = Vec::new();
+//         transform.transform(&mut output, event);
+//         assert_eq!(2, output.len());
+//         assert_eq!(
+//             output.pop().unwrap().into_metric(),
+//             Metric {
+//                 name: "xyz_exception_total".into(),
+//                 namespace: Some("local".into()),
+//                 timestamp: Some(ts()),
+//                 tags: None,
+//                 kind: MetricKind::Incremental,
+//                 value: MetricValue::Counter { value: 1.0 },
+//             }
+//         );
+//         assert_eq!(
+//             output.pop().unwrap().into_metric(),
+//             Metric {
+//                 name: "local_abc_status_set".into(),
+//                 namespace: None,
+//                 timestamp: Some(ts()),
+//                 tags: None,
+//                 kind: MetricKind::Incremental,
+//                 value: MetricValue::Set {
+//                     values: vec!["42".into()].into_iter().collect()
+//                 },
+//             }
+//         );
+//     }
+//
+//     #[test]
+//     fn user_ip_set() {
+//         let config = parse_config(
+//             r#"
+//             [[metrics]]
+//             type = "set"
+//             field = "user_ip"
+//             name = "unique_user_ip"
+//             "#,
+//         );
+//
+//         let event = create_event("user_ip", "1.2.3.4");
+//         let mut transform = LogToMetric::new(config);
+//         let metric = transform.transform_one(event).unwrap();
+//
+//         assert_eq!(
+//             metric.into_metric(),
+//             Metric {
+//                 name: "unique_user_ip".into(),
+//                 namespace: None,
+//                 timestamp: Some(ts()),
+//                 tags: None,
+//                 kind: MetricKind::Incremental,
+//                 value: MetricValue::Set {
+//                     values: vec!["1.2.3.4".into()].into_iter().collect()
+//                 },
+//             }
+//         );
+//     }
+//
+//     #[test]
+//     fn response_time_histogram() {
+//         let config = parse_config(
+//             r#"
+//             [[metrics]]
+//             type = "histogram"
+//             field = "response_time"
+//             "#,
+//         );
+//
+//         let event = create_event("response_time", "2.5");
+//         let mut transform = LogToMetric::new(config);
+//         let metric = transform.transform_one(event).unwrap();
+//
+//         assert_eq!(
+//             metric.into_metric(),
+//             Metric {
+//                 name: "response_time".into(),
+//                 namespace: None,
+//                 timestamp: Some(ts()),
+//                 tags: None,
+//                 kind: MetricKind::Incremental,
+//                 value: MetricValue::Distribution {
+//                     values: vec![2.5],
+//                     sample_rates: vec![1],
+//                     statistic: StatisticKind::Histogram
+//                 },
+//             }
+//         );
+//     }
+//
+//     #[test]
+//     fn response_time_summary() {
+//         let config = parse_config(
+//             r#"
+//             [[metrics]]
+//             type = "summary"
+//             field = "response_time"
+//             "#,
+//         );
+//
+//         let event = create_event("response_time", "2.5");
+//         let mut transform = LogToMetric::new(config);
+//         let metric = transform.transform_one(event).unwrap();
+//
+//         assert_eq!(
+//             metric.into_metric(),
+//             Metric {
+//                 name: "response_time".into(),
+//                 namespace: None,
+//                 timestamp: Some(ts()),
+//                 tags: None,
+//                 kind: MetricKind::Incremental,
+//                 value: MetricValue::Distribution {
+//                     values: vec![2.5],
+//                     sample_rates: vec![1],
+//                     statistic: StatisticKind::Summary
+//                 },
+//             }
+//         );
+//     }
+// }

@@ -120,96 +120,96 @@ impl FunctionTransform for Tokenizer {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::TokenizerConfig;
-    use crate::event::{LogEvent, Value};
-    use crate::{config::TransformConfig, Event};
-
-    #[test]
-    fn generate_config() {
-        crate::test_util::test_generate_config::<TokenizerConfig>();
-    }
-
-    async fn parse_log(
-        text: &str,
-        fields: &str,
-        field: Option<&str>,
-        drop_field: bool,
-        types: &[(&str, &str)],
-    ) -> LogEvent {
-        let event = Event::from(text);
-        let field_names = fields.split(' ').map(|s| s.into()).collect::<Vec<String>>();
-        let field = field.map(|f| f.into());
-        let mut parser = TokenizerConfig {
-            field_names,
-            field,
-            drop_field,
-            types: types.iter().map(|&(k, v)| (k.into(), v.into())).collect(),
-        }
-        .build()
-        .await
-        .unwrap();
-        let parser = parser.as_function();
-
-        parser.transform_one(event).unwrap().into_log()
-    }
-
-    #[tokio::test]
-    async fn tokenizer_adds_parsed_field_to_event() {
-        let log = parse_log("1234 5678", "status time", None, false, &[]).await;
-
-        assert_eq!(log["status"], "1234".into());
-        assert_eq!(log["time"], "5678".into());
-        assert!(log.get("message").is_some());
-    }
-
-    #[tokio::test]
-    async fn tokenizer_does_drop_parsed_field() {
-        let log = parse_log("1234 5678", "status time", Some("message"), true, &[]).await;
-
-        assert_eq!(log["status"], "1234".into());
-        assert_eq!(log["time"], "5678".into());
-        assert!(log.get("message").is_none());
-    }
-
-    #[tokio::test]
-    async fn tokenizer_does_not_drop_same_name_parsed_field() {
-        let log = parse_log("1234 yes", "status message", Some("message"), true, &[]).await;
-
-        assert_eq!(log["status"], "1234".into());
-        assert_eq!(log["message"], "yes".into());
-    }
-
-    #[tokio::test]
-    async fn tokenizer_coerces_fields_to_types() {
-        let log = parse_log(
-            "1234 yes 42.3 word",
-            "code flag number rest",
-            None,
-            false,
-            &[("flag", "bool"), ("code", "integer"), ("number", "float")],
-        )
-        .await;
-
-        assert_eq!(log["number"], Value::Float(42.3));
-        assert_eq!(log["flag"], Value::Boolean(true));
-        assert_eq!(log["code"], Value::Integer(1234));
-        assert_eq!(log["rest"], Value::Bytes("word".into()));
-    }
-
-    #[tokio::test]
-    async fn tokenizer_keeps_dash_as_dash() {
-        let log = parse_log(
-            "1234 - foo",
-            "code who why",
-            None,
-            false,
-            &[("code", "integer"), ("who", "string"), ("why", "string")],
-        )
-        .await;
-        assert_eq!(log["code"], Value::Integer(1234));
-        assert_eq!(log["who"], Value::Bytes("-".into()));
-        assert_eq!(log["why"], Value::Bytes("foo".into()));
-    }
-}
+// #[cfg(test)]
+// mod tests {
+//     use super::TokenizerConfig;
+//     use crate::event::{LogEvent, Value};
+//     use crate::{config::TransformConfig, Event};
+//
+//     #[test]
+//     fn generate_config() {
+//         crate::test_util::test_generate_config::<TokenizerConfig>();
+//     }
+//
+//     async fn parse_log(
+//         text: &str,
+//         fields: &str,
+//         field: Option<&str>,
+//         drop_field: bool,
+//         types: &[(&str, &str)],
+//     ) -> LogEvent {
+//         let event = Event::from(text);
+//         let field_names = fields.split(' ').map(|s| s.into()).collect::<Vec<String>>();
+//         let field = field.map(|f| f.into());
+//         let mut parser = TokenizerConfig {
+//             field_names,
+//             field,
+//             drop_field,
+//             types: types.iter().map(|&(k, v)| (k.into(), v.into())).collect(),
+//         }
+//         .build()
+//         .await
+//         .unwrap();
+//         let parser = parser.as_function();
+//
+//         parser.transform_one(event).unwrap().into_log()
+//     }
+//
+//     #[tokio::test]
+//     async fn tokenizer_adds_parsed_field_to_event() {
+//         let log = parse_log("1234 5678", "status time", None, false, &[]).await;
+//
+//         assert_eq!(log["status"], "1234".into());
+//         assert_eq!(log["time"], "5678".into());
+//         assert!(log.get("message").is_some());
+//     }
+//
+//     #[tokio::test]
+//     async fn tokenizer_does_drop_parsed_field() {
+//         let log = parse_log("1234 5678", "status time", Some("message"), true, &[]).await;
+//
+//         assert_eq!(log["status"], "1234".into());
+//         assert_eq!(log["time"], "5678".into());
+//         assert!(log.get("message").is_none());
+//     }
+//
+//     #[tokio::test]
+//     async fn tokenizer_does_not_drop_same_name_parsed_field() {
+//         let log = parse_log("1234 yes", "status message", Some("message"), true, &[]).await;
+//
+//         assert_eq!(log["status"], "1234".into());
+//         assert_eq!(log["message"], "yes".into());
+//     }
+//
+//     #[tokio::test]
+//     async fn tokenizer_coerces_fields_to_types() {
+//         let log = parse_log(
+//             "1234 yes 42.3 word",
+//             "code flag number rest",
+//             None,
+//             false,
+//             &[("flag", "bool"), ("code", "integer"), ("number", "float")],
+//         )
+//         .await;
+//
+//         assert_eq!(log["number"], Value::Float(42.3));
+//         assert_eq!(log["flag"], Value::Boolean(true));
+//         assert_eq!(log["code"], Value::Integer(1234));
+//         assert_eq!(log["rest"], Value::Bytes("word".into()));
+//     }
+//
+//     #[tokio::test]
+//     async fn tokenizer_keeps_dash_as_dash() {
+//         let log = parse_log(
+//             "1234 - foo",
+//             "code who why",
+//             None,
+//             false,
+//             &[("code", "integer"), ("who", "string"), ("why", "string")],
+//         )
+//         .await;
+//         assert_eq!(log["code"], Value::Integer(1234));
+//         assert_eq!(log["who"], Value::Bytes("-".into()));
+//         assert_eq!(log["why"], Value::Bytes("foo".into()));
+//     }
+// }

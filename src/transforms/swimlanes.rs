@@ -117,10 +117,10 @@ impl TransformConfig for SwimlanesConfig {
 
 //------------------------------------------------------------------------------
 
-#[cfg(test)]
-mod test {
-    #[test]
-    fn generate_config() {
-        crate::test_util::test_generate_config::<super::SwimlanesConfig>();
-    }
-}
+// #[cfg(test)]
+// mod test {
+//     #[test]
+//     fn generate_config() {
+//         crate::test_util::test_generate_config::<super::SwimlanesConfig>();
+//     }
+// }

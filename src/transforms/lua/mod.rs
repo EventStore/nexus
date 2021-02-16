@@ -88,10 +88,10 @@ impl TransformConfig for LuaConfig {
     }
 }
 
-#[cfg(test)]
-mod test {
-    #[test]
-    fn generate_config() {
-        crate::test_util::test_generate_config::<super::LuaConfig>();
-    }
-}
+// #[cfg(test)]
+// mod test {
+//     #[test]
+//     fn generate_config() {
+//         crate::test_util::test_generate_config::<super::LuaConfig>();
+//     }
+// }
