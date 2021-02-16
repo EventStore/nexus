@@ -253,147 +253,147 @@ impl Iterator for ExponentialBackoff {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::test_util::trace_init;
-    use std::{fmt, time::Duration};
-    use tokio::time;
-    use tokio_test::{assert_pending, assert_ready_err, assert_ready_ok, task};
-    use tower::retry::RetryLayer;
-    use tower_test::{assert_request_eq, mock};
-
-    #[tokio::test]
-    async fn service_error_retry() {
-        trace_init();
-
-        time::pause();
-
-        let policy = FixedRetryPolicy::new(
-            5,
-            Duration::from_secs(1),
-            Duration::from_secs(10),
-            SvcRetryLogic,
-        );
-
-        let (mut svc, mut handle) = mock::spawn_layer(RetryLayer::new(policy));
-
-        assert_ready_ok!(svc.poll_ready());
-
-        let fut = svc.call("hello");
-        let mut fut = task::spawn(fut);
-
-        assert_request_eq!(handle, "hello").send_error(Error(true));
-
-        assert_pending!(fut.poll());
-
-        time::advance(Duration::from_secs(2)).await;
-        assert_pending!(fut.poll());
-
-        assert_request_eq!(handle, "hello").send_response("world");
-        assert_eq!(fut.await.unwrap(), "world");
-    }
-
-    #[tokio::test]
-    async fn service_error_no_retry() {
-        trace_init();
-
-        let policy = FixedRetryPolicy::new(
-            5,
-            Duration::from_secs(1),
-            Duration::from_secs(10),
-            SvcRetryLogic,
-        );
-
-        let (mut svc, mut handle) = mock::spawn_layer(RetryLayer::new(policy));
-
-        assert_ready_ok!(svc.poll_ready());
-
-        let mut fut = task::spawn(svc.call("hello"));
-        assert_request_eq!(handle, "hello").send_error(Error(false));
-        assert_ready_err!(fut.poll());
-    }
-
-    #[tokio::test]
-    async fn timeout_error() {
-        trace_init();
-
-        time::pause();
-
-        let policy = FixedRetryPolicy::new(
-            5,
-            Duration::from_secs(1),
-            Duration::from_secs(10),
-            SvcRetryLogic,
-        );
-
-        let (mut svc, mut handle) = mock::spawn_layer(RetryLayer::new(policy));
-
-        assert_ready_ok!(svc.poll_ready());
-
-        let mut fut = task::spawn(svc.call("hello"));
-        assert_request_eq!(handle, "hello").send_error(Elapsed::new());
-        assert_pending!(fut.poll());
-
-        time::advance(Duration::from_secs(2)).await;
-        assert_pending!(fut.poll());
-
-        assert_request_eq!(handle, "hello").send_response("world");
-        assert_eq!(fut.await.unwrap(), "world");
-    }
-
-    #[test]
-    fn backoff_grows_to_max() {
-        let mut policy = FixedRetryPolicy::new(
-            10,
-            Duration::from_secs(1),
-            Duration::from_secs(10),
-            SvcRetryLogic,
-        );
-        assert_eq!(Duration::from_secs(1), policy.backoff());
-
-        policy = policy.advance();
-        assert_eq!(Duration::from_secs(1), policy.backoff());
-
-        policy = policy.advance();
-        assert_eq!(Duration::from_secs(2), policy.backoff());
-
-        policy = policy.advance();
-        assert_eq!(Duration::from_secs(3), policy.backoff());
-
-        policy = policy.advance();
-        assert_eq!(Duration::from_secs(5), policy.backoff());
-
-        policy = policy.advance();
-        assert_eq!(Duration::from_secs(8), policy.backoff());
-
-        policy = policy.advance();
-        assert_eq!(Duration::from_secs(10), policy.backoff());
-
-        policy = policy.advance();
-        assert_eq!(Duration::from_secs(10), policy.backoff());
-    }
-
-    #[derive(Debug, Clone)]
-    struct SvcRetryLogic;
-
-    impl RetryLogic for SvcRetryLogic {
-        type Error = Error;
-        type Response = &'static str;
-
-        fn is_retriable_error(&self, error: &Self::Error) -> bool {
-            error.0
-        }
-    }
-
-    #[derive(Debug)]
-    struct Error(bool);
-
-    impl fmt::Display for Error {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            write!(f, "error")
-        }
-    }
-
-    impl std::error::Error for Error {}
-}
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     use crate::test_util::trace_init;
+//     use std::{fmt, time::Duration};
+//     use tokio::time;
+//     use tokio_test::{assert_pending, assert_ready_err, assert_ready_ok, task};
+//     use tower::retry::RetryLayer;
+//     use tower_test::{assert_request_eq, mock};
+//
+//     #[tokio::test]
+//     async fn service_error_retry() {
+//         trace_init();
+//
+//         time::pause();
+//
+//         let policy = FixedRetryPolicy::new(
+//             5,
+//             Duration::from_secs(1),
+//             Duration::from_secs(10),
+//             SvcRetryLogic,
+//         );
+//
+//         let (mut svc, mut handle) = mock::spawn_layer(RetryLayer::new(policy));
+//
+//         assert_ready_ok!(svc.poll_ready());
+//
+//         let fut = svc.call("hello");
+//         let mut fut = task::spawn(fut);
+//
+//         assert_request_eq!(handle, "hello").send_error(Error(true));
+//
+//         assert_pending!(fut.poll());
+//
+//         time::advance(Duration::from_secs(2)).await;
+//         assert_pending!(fut.poll());
+//
+//         assert_request_eq!(handle, "hello").send_response("world");
+//         assert_eq!(fut.await.unwrap(), "world");
+//     }
+//
+//     #[tokio::test]
+//     async fn service_error_no_retry() {
+//         trace_init();
+//
+//         let policy = FixedRetryPolicy::new(
+//             5,
+//             Duration::from_secs(1),
+//             Duration::from_secs(10),
+//             SvcRetryLogic,
+//         );
+//
+//         let (mut svc, mut handle) = mock::spawn_layer(RetryLayer::new(policy));
+//
+//         assert_ready_ok!(svc.poll_ready());
+//
+//         let mut fut = task::spawn(svc.call("hello"));
+//         assert_request_eq!(handle, "hello").send_error(Error(false));
+//         assert_ready_err!(fut.poll());
+//     }
+//
+//     #[tokio::test]
+//     async fn timeout_error() {
+//         trace_init();
+//
+//         time::pause();
+//
+//         let policy = FixedRetryPolicy::new(
+//             5,
+//             Duration::from_secs(1),
+//             Duration::from_secs(10),
+//             SvcRetryLogic,
+//         );
+//
+//         let (mut svc, mut handle) = mock::spawn_layer(RetryLayer::new(policy));
+//
+//         assert_ready_ok!(svc.poll_ready());
+//
+//         let mut fut = task::spawn(svc.call("hello"));
+//         assert_request_eq!(handle, "hello").send_error(Elapsed::new());
+//         assert_pending!(fut.poll());
+//
+//         time::advance(Duration::from_secs(2)).await;
+//         assert_pending!(fut.poll());
+//
+//         assert_request_eq!(handle, "hello").send_response("world");
+//         assert_eq!(fut.await.unwrap(), "world");
+//     }
+//
+//     #[test]
+//     fn backoff_grows_to_max() {
+//         let mut policy = FixedRetryPolicy::new(
+//             10,
+//             Duration::from_secs(1),
+//             Duration::from_secs(10),
+//             SvcRetryLogic,
+//         );
+//         assert_eq!(Duration::from_secs(1), policy.backoff());
+//
+//         policy = policy.advance();
+//         assert_eq!(Duration::from_secs(1), policy.backoff());
+//
+//         policy = policy.advance();
+//         assert_eq!(Duration::from_secs(2), policy.backoff());
+//
+//         policy = policy.advance();
+//         assert_eq!(Duration::from_secs(3), policy.backoff());
+//
+//         policy = policy.advance();
+//         assert_eq!(Duration::from_secs(5), policy.backoff());
+//
+//         policy = policy.advance();
+//         assert_eq!(Duration::from_secs(8), policy.backoff());
+//
+//         policy = policy.advance();
+//         assert_eq!(Duration::from_secs(10), policy.backoff());
+//
+//         policy = policy.advance();
+//         assert_eq!(Duration::from_secs(10), policy.backoff());
+//     }
+//
+//     #[derive(Debug, Clone)]
+//     struct SvcRetryLogic;
+//
+//     impl RetryLogic for SvcRetryLogic {
+//         type Error = Error;
+//         type Response = &'static str;
+//
+//         fn is_retriable_error(&self, error: &Self::Error) -> bool {
+//             error.0
+//         }
+//     }
+//
+//     #[derive(Debug)]
+//     struct Error(bool);
+//
+//     impl fmt::Display for Error {
+//         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//             write!(f, "error")
+//         }
+//     }
+//
+//     impl std::error::Error for Error {}
+// }

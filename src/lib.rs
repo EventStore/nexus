@@ -23,13 +23,12 @@ extern crate pest_derive;
 static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
 mod buffers;
-mod conditions;
 #[macro_use]
 mod config;
+mod conditions;
 mod dns;
 mod event;
 mod serde;
-mod topology;
 #[macro_use]
 mod internal_events;
 mod heartbeat;
@@ -44,8 +43,8 @@ mod sources;
 mod stream;
 mod tcp;
 mod template;
-mod test_util;
 mod tls;
+mod topology;
 mod trace;
 mod transforms;
 mod trigger;

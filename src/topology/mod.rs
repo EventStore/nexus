@@ -207,8 +207,8 @@ impl RunningTopology {
             Box::pin(reporter) as future::BoxFuture<'static, Result<(), ()>>,
             Box::pin(success) as future::BoxFuture<'static, Result<(), ()>>,
         ])
-            .map(|(result, _, _)| result.map(|_| ()).map_err(|_| ()))
-            .compat();
+        .map(|(result, _, _)| result.map(|_| ()).map_err(|_| ()))
+        .compat();
 
         // Now kick off the shutdown process by shutting down the sources.
         let source_shutdown_complete = self.shutdown_coordinator.shutdown_all(deadline);
@@ -404,9 +404,9 @@ impl RunningTopology {
                     .map(|(key, value)| ((false, key), value)),
             ),
         )
-            .into_iter()
-            .flat_map(|(_, components)| components)
-            .collect::<HashSet<_>>();
+        .into_iter()
+        .flat_map(|(_, components)| components)
+        .collect::<HashSet<_>>();
         // Existing conflicting sinks
         let conflicting_sinks = conflicts
             .into_iter()
@@ -810,14 +810,14 @@ mod tests {
 }
 
 #[cfg(all(
-test,
-feature = "sinks-console",
-feature = "sources-splunk_hec",
-feature = "sources-generator",
-feature = "sinks-prometheus",
-feature = "transforms-log_to_metric",
-feature = "sinks-socket",
-feature = "leveldb"
+    test,
+    feature = "sinks-console",
+    feature = "sources-splunk_hec",
+    feature = "sources-generator",
+    feature = "sinks-prometheus",
+    feature = "transforms-log_to_metric",
+    feature = "sinks-socket",
+    feature = "leveldb"
 ))]
 mod reload_tests {
     use crate::buffers::{BufferConfig, WhenFull};
@@ -972,7 +972,7 @@ mod reload_tests {
             address,
             address,
         )
-            .await;
+        .await;
     }
 
     #[tokio::test]
@@ -1025,7 +1025,7 @@ mod reload_tests {
             address_0,
             address_1,
         )
-            .await;
+        .await;
     }
 
     #[tokio::test(core_threads = 2)]
@@ -1084,7 +1084,7 @@ mod reload_tests {
             address_0,
             address_1,
         )
-            .await;
+        .await;
     }
     async fn reload_sink_test(
         old_config: Config,
@@ -1149,10 +1149,10 @@ mod source_finished_tests {
 }
 
 #[cfg(all(
-test,
-feature = "sinks-blackhole",
-feature = "sources-stdin",
-feature = "transforms-json_parser"
+    test,
+    feature = "sinks-blackhole",
+    feature = "sources-stdin",
+    feature = "transforms-json_parser"
 ))]
 mod transient_state_tests {
     use crate::{
@@ -1206,8 +1206,8 @@ mod transient_state_tests {
                         .then(crate::stream::tripwire_handler)
                         .boxed(),
                 )
-                    .map(|_| std::mem::drop(out))
-                    .unit_error(),
+                .map(|_| std::mem::drop(out))
+                .unit_error(),
             ))
         }
 

@@ -1,7 +1,7 @@
 use super::semaphore::ShrinkableSemaphore;
 use super::{instant_now, AdaptiveConcurrencySettings};
-#[cfg(test)]
-use crate::test_util::stats::{TimeHistogram, TimeWeightedSum};
+// #[cfg(test)]
+// use crate::test_util::stats::{TimeHistogram, TimeWeightedSum};
 use crate::{
     emit,
     http::HttpError,
@@ -26,8 +26,8 @@ pub(super) struct Controller<L> {
     settings: AdaptiveConcurrencySettings,
     logic: L,
     pub(super) inner: Arc<Mutex<Inner>>,
-    #[cfg(test)]
-    pub(super) stats: Arc<Mutex<ControllerStatistics>>,
+    // #[cfg(test)]
+    // pub(super) stats: Arc<Mutex<ControllerStatistics>>,
 }
 
 #[derive(Debug)]
@@ -41,14 +41,14 @@ pub(super) struct Inner {
     reached_limit: bool,
 }
 
-#[cfg(test)]
-#[derive(Debug, Default)]
-pub(super) struct ControllerStatistics {
-    pub(super) in_flight: TimeHistogram,
-    pub(super) concurrency_limit: TimeHistogram,
-    pub(super) observed_rtt: TimeWeightedSum,
-    pub(super) averaged_rtt: TimeWeightedSum,
-}
+// #[cfg(test)]
+// #[derive(Debug, Default)]
+// pub(super) struct ControllerStatistics {
+//     pub(super) in_flight: TimeHistogram,
+//     pub(super) concurrency_limit: TimeHistogram,
+//     pub(super) observed_rtt: TimeWeightedSum,
+//     pub(super) averaged_rtt: TimeWeightedSum,
+// }
 
 impl<L> Controller<L> {
     pub(super) fn new(
@@ -75,8 +75,8 @@ impl<L> Controller<L> {
                 had_back_pressure: false,
                 reached_limit: false,
             })),
-            #[cfg(test)]
-            stats: Arc::new(Mutex::new(ControllerStatistics::default())),
+            // #[cfg(test)]
+            // stats: Arc::new(Mutex::new(ControllerStatistics::default())),
         }
     }
 
@@ -91,11 +91,11 @@ impl<L> Controller<L> {
     pub(super) fn start_request(&self) {
         let mut inner = self.inner.lock().expect("Controller mutex is poisoned");
 
-        #[cfg(test)]
-        {
-            let mut stats = self.stats.lock().expect("Stats mutex is poisoned");
-            stats.in_flight.add(inner.in_flight, instant_now());
-        }
+        // #[cfg(test)]
+        // {
+        //     let mut stats = self.stats.lock().expect("Stats mutex is poisoned");
+        //     stats.in_flight.add(inner.in_flight, instant_now());
+        // }
 
         inner.in_flight += 1;
         emit!(AdaptiveConcurrencyInFlight {
@@ -120,16 +120,16 @@ impl<L> Controller<L> {
             inner.had_back_pressure = true;
         }
 
-        #[cfg(test)]
-        let mut stats = self.stats.lock().expect("Stats mutex is poisoned");
-
-        #[cfg(test)]
-        {
-            if use_rtt {
-                stats.observed_rtt.add(rtt, now);
-            }
-            stats.in_flight.add(inner.in_flight, now);
-        }
+        // #[cfg(test)]
+        // let mut stats = self.stats.lock().expect("Stats mutex is poisoned");
+        //
+        // #[cfg(test)]
+        // {
+        //     if use_rtt {
+        //         stats.observed_rtt.add(rtt, now);
+        //     }
+        //     stats.in_flight.add(inner.in_flight, now);
+        // }
 
         inner.in_flight -= 1;
         emit!(AdaptiveConcurrencyInFlight {
@@ -151,14 +151,14 @@ impl<L> Controller<L> {
             }
             Some(mut past_rtt) => {
                 if now >= inner.next_update {
-                    #[cfg(test)]
-                    {
-                        if let Some(current_rtt) = current_rtt {
-                            stats.averaged_rtt.add(current_rtt, now);
-                        }
-                        stats.concurrency_limit.add(inner.current_limit, now);
-                        drop(stats); // Drop the stats lock a little earlier on this path
-                    }
+                    // #[cfg(test)]
+                    // {
+                    //     if let Some(current_rtt) = current_rtt {
+                    //         stats.averaged_rtt.add(current_rtt, now);
+                    //     }
+                    //     stats.concurrency_limit.add(inner.current_limit, now);
+                    //     drop(stats); // Drop the stats lock a little earlier on this path
+                    // }
 
                     if let Some(current_rtt) = current_rtt {
                         emit!(AdaptiveConcurrencyAveragedRtt {
@@ -319,36 +319,36 @@ impl Mean {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn mean_update_works() {
-        let mut mean = Mean::default();
-        assert_eq!(mean.average(), None);
-        mean.update(0.0);
-        assert_eq!(mean.average(), Some(0.0));
-        mean.update(2.0);
-        assert_eq!(mean.average(), Some(1.0));
-        mean.update(4.0);
-        assert_eq!(mean.average(), Some(2.0));
-        assert_eq!(mean.count, 3);
-        assert_eq!(mean.sum, 6.0);
-    }
-
-    #[test]
-    fn ewma_update_works() {
-        let mut mean = EWMA::new(0.5);
-        assert_eq!(mean.average(), None);
-        mean.update(2.0);
-        assert_eq!(mean.average(), Some(2.0));
-        mean.update(2.0);
-        assert_eq!(mean.average(), Some(2.0));
-        mean.update(1.0);
-        assert_eq!(mean.average(), Some(1.5));
-        mean.update(2.0);
-        assert_eq!(mean.average(), Some(1.75));
-        assert_eq!(mean.average, Some(1.75));
-    }
-}
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//
+//     #[test]
+//     fn mean_update_works() {
+//         let mut mean = Mean::default();
+//         assert_eq!(mean.average(), None);
+//         mean.update(0.0);
+//         assert_eq!(mean.average(), Some(0.0));
+//         mean.update(2.0);
+//         assert_eq!(mean.average(), Some(1.0));
+//         mean.update(4.0);
+//         assert_eq!(mean.average(), Some(2.0));
+//         assert_eq!(mean.count, 3);
+//         assert_eq!(mean.sum, 6.0);
+//     }
+//
+//     #[test]
+//     fn ewma_update_works() {
+//         let mut mean = EWMA::new(0.5);
+//         assert_eq!(mean.average(), None);
+//         mean.update(2.0);
+//         assert_eq!(mean.average(), Some(2.0));
+//         mean.update(2.0);
+//         assert_eq!(mean.average(), Some(2.0));
+//         mean.update(1.0);
+//         assert_eq!(mean.average(), Some(1.5));
+//         mean.update(2.0);
+//         assert_eq!(mean.average(), Some(1.75));
+//         assert_eq!(mean.average, Some(1.75));
+//     }
+// }

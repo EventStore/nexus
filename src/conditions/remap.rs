@@ -102,91 +102,91 @@ impl Condition for Remap {
     }
 }
 
-#[cfg(test)]
-mod test {
-    use std::collections::BTreeMap;
-
-    use super::*;
-    use crate::{event::Metric, event::MetricKind, event::MetricValue, log_event};
-
-    #[test]
-    fn generate_config() {
-        crate::test_util::test_generate_config::<RemapConfig>();
-    }
-
-    #[test]
-    fn check_remap() {
-        let checks = vec![
-            (
-                log_event![],   // event
-                "true == true", // source
-                Ok(()),         // build result
-                Ok(()),         // check result
-            ),
-            (
-                log_event!["foo" => true, "bar" => false],
-                "to_bool(.bar || .foo)",
-                Ok(()),
-                Ok(()),
-            ),
-            (
-                log_event![],
-                "true == false",
-                Ok(()),
-                Err("source execution resolved to false"),
-            ),
-            (
-                log_event![],
-                "null",
-                Err("remap error: program error: expected to resolve to an error, or boolean value, but instead resolves to null value"),
-                Ok(()),
-            ),
-            (
-                log_event!["foo" => "string"],
-                ".foo",
-                Err("remap error: program error: expected to resolve to boolean value, but instead resolves to any value"),
-                Ok(()),
-            ),
-            (
-                log_event![],
-                ".",
-                Err("remap error: program error: expected to resolve to boolean value, but instead resolves to any value"),
-                Ok(()),
-            ),
-            (
-                Event::Metric(Metric {
-                    name: "zork".into(),
-                    namespace: Some("zerk".into()),
-                    timestamp: None,
-                    tags: Some({
-                        let mut tags = BTreeMap::new();
-                        tags.insert("host".into(), "zoobub".into());
-                        tags
-                    }),
-                    kind: MetricKind::Incremental,
-                    value: MetricValue::Counter { value: 1.0 },
-                }),
-                r#".name == "zork" && .tags.host == "zoobub" && .kind == "incremental""#,
-                Ok(()),
-                Ok(()),
-            )
-        ];
-
-        for (event, source, build, check) in checks {
-            let source = source.to_owned();
-            let config = RemapConfig { source };
-
-            assert_eq!(
-                config.build().map(|_| ()).map_err(|e| e.to_string()),
-                build.map_err(|e| e.to_string())
-            );
-
-            if let Ok(cond) = config.build() {
-                assert_eq!(
-                    cond.check_with_context(&event),
-                    check.map_err(|e| e.to_string())
-                );
-            }
-        }
-    }
-}
+// #[cfg(test)]
+// mod test {
+//     use std::collections::BTreeMap;
+//
+//     use super::*;
+//     use crate::{event::Metric, event::MetricKind, event::MetricValue, log_event};
+//
+//     #[test]
+//     fn generate_config() {
+//         crate::test_util::test_generate_config::<RemapConfig>();
+//     }
+//
+//     #[test]
+//     fn check_remap() {
+//         let checks = vec![
+//             (
+//                 log_event![],   // event
+//                 "true == true", // source
+//                 Ok(()),         // build result
+//                 Ok(()),         // check result
+//             ),
+//             (
+//                 log_event!["foo" => true, "bar" => false],
+//                 "to_bool(.bar || .foo)",
+//                 Ok(()),
+//                 Ok(()),
+//             ),
+//             (
+//                 log_event![],
+//                 "true == false",
+//                 Ok(()),
+//                 Err("source execution resolved to false"),
+//             ),
+//             (
+//                 log_event![],
+//                 "null",
+//                 Err("remap error: program error: expected to resolve to an error, or boolean value, but instead resolves to null value"),
+//                 Ok(()),
+//             ),
+//             (
+//                 log_event!["foo" => "string"],
+//                 ".foo",
+//                 Err("remap error: program error: expected to resolve to boolean value, but instead resolves to any value"),
+//                 Ok(()),
+//             ),
+//             (
+//                 log_event![],
+//                 ".",
+//                 Err("remap error: program error: expected to resolve to boolean value, but instead resolves to any value"),
+//                 Ok(()),
+//             ),
+//             (
+//                 Event::Metric(Metric {
+//                     name: "zork".into(),
+//                     namespace: Some("zerk".into()),
+//                     timestamp: None,
+//                     tags: Some({
+//                         let mut tags = BTreeMap::new();
+//                         tags.insert("host".into(), "zoobub".into());
+//                         tags
+//                     }),
+//                     kind: MetricKind::Incremental,
+//                     value: MetricValue::Counter { value: 1.0 },
+//                 }),
+//                 r#".name == "zork" && .tags.host == "zoobub" && .kind == "incremental""#,
+//                 Ok(()),
+//                 Ok(()),
+//             )
+//         ];
+//
+//         for (event, source, build, check) in checks {
+//             let source = source.to_owned();
+//             let config = RemapConfig { source };
+//
+//             assert_eq!(
+//                 config.build().map(|_| ()).map_err(|e| e.to_string()),
+//                 build.map_err(|e| e.to_string())
+//             );
+//
+//             if let Ok(cond) = config.build() {
+//                 assert_eq!(
+//                     cond.check_with_context(&event),
+//                     check.map_err(|e| e.to_string())
+//                 );
+//             }
+//         }
+//     }
+// }

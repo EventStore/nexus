@@ -83,7 +83,7 @@ impl CheckFieldsPredicate for EqualsPredicate {
                         CheckFieldsPredicateArg::String(s) => s.as_bytes() == v.as_bytes(),
                         _ => false,
                     })
-            },
+            }
 
             Event::Cloud(_) => {
                 // Don't what this is about but for now we are going to yes at everything,
@@ -604,572 +604,572 @@ impl Condition for CheckFields {
 
 //------------------------------------------------------------------------------
 
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::Event;
-
-    #[test]
-    fn generate_config() {
-        crate::test_util::test_generate_config::<CheckFieldsConfig>();
-    }
-
-    #[test]
-    fn check_predicate_errors() {
-        let cases = vec![
-            ("foo", "predicate not found in check_fields value 'foo', format must be <target>.<predicate>"),
-            (".nah", "predicate not found in check_fields value '.nah', format must be <target>.<predicate>"),
-            ("", "predicate not found in check_fields value '', format must be <target>.<predicate>"),
-            ("what.", "predicate not found in check_fields value 'what.', format must be <target>.<predicate>"),
-            ("foo.nix_real", "predicate type 'nix_real' not recognized"),
-        ];
-
-        let mut aggregated_preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
-        let mut exp_errs = Vec::new();
-        for (pred, exp) in cases {
-            aggregated_preds.insert(pred.into(), CheckFieldsPredicateArg::String("foo".into()));
-            exp_errs.push(exp);
-
-            let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
-            preds.insert(pred.into(), CheckFieldsPredicateArg::String("foo".into()));
-
-            assert_eq!(
-                CheckFieldsConfig { predicates: preds }
-                    .build()
-                    .err()
-                    .unwrap()
-                    .to_string(),
-                exp.to_owned()
-            );
-        }
-
-        let mut exp_err = exp_errs.join("\n");
-        exp_err.insert_str(0, "failed to parse predicates:\n");
-
-        assert_eq!(
-            CheckFieldsConfig {
-                predicates: aggregated_preds
-            }
-            .build()
-            .err()
-            .unwrap()
-            .to_string(),
-            exp_err
-        );
-    }
-
-    #[test]
-    fn check_field_equals() {
-        let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
-        preds.insert(
-            "message.equals".into(),
-            CheckFieldsPredicateArg::String("foo".into()),
-        );
-        preds.insert(
-            "other_thing.eq".into(),
-            CheckFieldsPredicateArg::String("bar".into()),
-        );
-        preds.insert(
-            "third_thing.eq".into(),
-            CheckFieldsPredicateArg::VecString(vec!["hello".into(), "world".into()]),
-        );
-
-        let cond = CheckFieldsConfig { predicates: preds }.build().unwrap();
-
-        let mut event = Event::from("neither");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err(
-                "predicates failed: [ message.equals: \"foo\", other_thing.eq: \"bar\", third_thing.eq: [\"hello\", \"world\"] ]"
-                    .to_owned()
-            )
-        );
-
-        event.as_mut_log().insert("message", "foo");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ other_thing.eq: \"bar\", third_thing.eq: [\"hello\", \"world\"] ]".to_owned())
-        );
-
-        event.as_mut_log().insert("other_thing", "bar");
-        event.as_mut_log().insert("third_thing", "hello");
-        assert_eq!(cond.check(&event), true);
-        assert_eq!(cond.check_with_context(&event), Ok(()));
-
-        event.as_mut_log().insert("third_thing", "world");
-        assert_eq!(cond.check(&event), true);
-        assert_eq!(cond.check_with_context(&event), Ok(()));
-
-        event.as_mut_log().insert("message", "not foo");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ message.equals: \"foo\" ]".to_owned())
-        );
-    }
-
-    #[test]
-    fn check_field_contains() {
-        let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
-        preds.insert(
-            "message.contains".into(),
-            CheckFieldsPredicateArg::String("foo".into()),
-        );
-        preds.insert(
-            "other_thing.contains".into(),
-            CheckFieldsPredicateArg::String("bar".into()),
-        );
-        preds.insert(
-            "third_thing.contains".into(),
-            CheckFieldsPredicateArg::VecString(vec!["hello".into(), "world".into()]),
-        );
-
-        let cond = CheckFieldsConfig { predicates: preds }.build().unwrap();
-
-        let mut event = Event::from("neither");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err(
-                "predicates failed: [ message.contains: \"foo\", other_thing.contains: \"bar\", third_thing.contains: [\"hello\", \"world\"] ]"
-                    .to_owned()
-            )
-        );
-
-        event.as_mut_log().insert("message", "hello foo world");
-        event.as_mut_log().insert("third_thing", "hello world");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ other_thing.contains: \"bar\" ]".to_owned())
-        );
-
-        event.as_mut_log().insert("other_thing", "hello bar world");
-        assert_eq!(cond.check(&event), true);
-        assert_eq!(cond.check_with_context(&event), Ok(()));
-
-        event
-            .as_mut_log()
-            .insert("third_thing", "not hell0 or w0rld");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ third_thing.contains: [\"hello\", \"world\"] ]".to_owned()),
-        );
-
-        event.as_mut_log().insert("third_thing", "world");
-        assert_eq!(cond.check(&event), true);
-        assert_eq!(cond.check_with_context(&event), Ok(()));
-
-        event.as_mut_log().insert("message", "not fo0");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ message.contains: \"foo\" ]".to_owned())
-        );
-    }
-
-    #[test]
-    fn check_field_prefix() {
-        let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
-        preds.insert(
-            "message.prefix".into(),
-            CheckFieldsPredicateArg::String("foo".into()),
-        );
-        preds.insert(
-            "other_thing.prefix".into(),
-            CheckFieldsPredicateArg::String("bar".into()),
-        );
-
-        let cond = CheckFieldsConfig { predicates: preds }.build().unwrap();
-
-        let mut event = Event::from("neither");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err(
-                "predicates failed: [ message.prefix: \"foo\", other_thing.prefix: \"bar\" ]"
-                    .to_owned()
-            )
-        );
-
-        event.as_mut_log().insert("message", "foo hello world");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ other_thing.prefix: \"bar\" ]".to_owned())
-        );
-
-        event.as_mut_log().insert("other_thing", "bar hello world");
-        assert_eq!(cond.check(&event), true);
-        assert_eq!(cond.check_with_context(&event), Ok(()));
-
-        event.as_mut_log().insert("message", "not prefixed");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ message.prefix: \"foo\" ]".to_owned())
-        );
-    }
-
-    #[test]
-    fn check_field_starts_with() {
-        let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
-        preds.insert(
-            "message.starts_with".into(),
-            CheckFieldsPredicateArg::String("foo".into()),
-        );
-        preds.insert(
-            "other_thing.starts_with".into(),
-            CheckFieldsPredicateArg::String("bar".into()),
-        );
-        preds.insert(
-            "third_thing.starts_with".into(),
-            CheckFieldsPredicateArg::VecString(vec!["hello".into(), "world".into()]),
-        );
-
-        let cond = CheckFieldsConfig { predicates: preds }.build().unwrap();
-
-        let mut event = Event::from("neither");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err(
-                "predicates failed: [ message.starts_with: \"foo\", other_thing.starts_with: \"bar\", third_thing.starts_with: [\"hello\", \"world\"] ]"
-                    .to_owned()
-            )
-        );
-
-        event.as_mut_log().insert("third_thing", "hello world");
-        event.as_mut_log().insert("message", "foo hello world");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ other_thing.starts_with: \"bar\" ]".to_owned())
-        );
-
-        event.as_mut_log().insert("other_thing", "bar hello world");
-        assert_eq!(cond.check(&event), true);
-        assert_eq!(cond.check_with_context(&event), Ok(()));
-
-        event
-            .as_mut_log()
-            .insert("third_thing", "wrong hello world");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err(
-                "predicates failed: [ third_thing.starts_with: [\"hello\", \"world\"] ]".to_owned()
-            ),
-        );
-
-        event.as_mut_log().insert("third_thing", "world");
-        assert_eq!(cond.check(&event), true);
-        assert_eq!(cond.check_with_context(&event), Ok(()));
-
-        event.as_mut_log().insert("message", "not prefixed");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ message.starts_with: \"foo\" ]".to_owned())
-        );
-    }
-
-    #[test]
-    fn check_field_ends_with() {
-        let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
-        preds.insert(
-            "message.ends_with".into(),
-            CheckFieldsPredicateArg::String("foo".into()),
-        );
-        preds.insert(
-            "other_thing.ends_with".into(),
-            CheckFieldsPredicateArg::String("bar".into()),
-        );
-        preds.insert(
-            "third_thing.ends_with".into(),
-            CheckFieldsPredicateArg::VecString(vec!["hello".into(), "world".into()]),
-        );
-
-        let cond = CheckFieldsConfig { predicates: preds }.build().unwrap();
-
-        let mut event = Event::from("neither");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err(
-                "predicates failed: [ message.ends_with: \"foo\", other_thing.ends_with: \"bar\", third_thing.ends_with: [\"hello\", \"world\"] ]"
-                    .to_owned()
-            )
-        );
-
-        event.as_mut_log().insert("message", "hello world foo");
-        event.as_mut_log().insert("third_thing", "hello world");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ other_thing.ends_with: \"bar\" ]".to_owned())
-        );
-
-        event.as_mut_log().insert("other_thing", "hello world bar");
-        assert_eq!(cond.check(&event), true);
-        assert_eq!(cond.check_with_context(&event), Ok(()));
-
-        event.as_mut_log().insert("third_thing", "hello world bad");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ third_thing.ends_with: [\"hello\", \"world\"] ]".to_owned()),
-        );
-
-        event.as_mut_log().insert("third_thing", "world hello");
-        assert_eq!(cond.check(&event), true);
-        assert_eq!(cond.check_with_context(&event), Ok(()));
-
-        event.as_mut_log().insert("message", "not suffixed");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ message.ends_with: \"foo\" ]".to_owned())
-        );
-    }
-
-    #[test]
-    fn check_field_not_equals() {
-        let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
-        preds.insert(
-            "message.not_equals".into(),
-            CheckFieldsPredicateArg::String("foo".into()),
-        );
-        preds.insert(
-            "other_thing.neq".into(),
-            CheckFieldsPredicateArg::String("bar".into()),
-        );
-        preds.insert(
-            "third_thing.neq".into(),
-            CheckFieldsPredicateArg::VecString(vec!["hello".into(), "world".into()]),
-        );
-
-        let cond = CheckFieldsConfig { predicates: preds }.build().unwrap();
-
-        let mut event = Event::from("not foo");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ other_thing.neq: \"bar\", third_thing.neq: [\"hello\", \"world\"] ]".to_owned())
-        );
-
-        event.as_mut_log().insert("other_thing", "not bar");
-        event
-            .as_mut_log()
-            .insert("third_thing", "not hello or world");
-        assert_eq!(cond.check(&event), true);
-        assert_eq!(cond.check_with_context(&event), Ok(()));
-
-        event.as_mut_log().insert("third_thing", "world");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ third_thing.neq: [\"hello\", \"world\"] ]".to_owned()),
-        );
-
-        event.as_mut_log().insert("third_thing", "hello");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ third_thing.neq: [\"hello\", \"world\"] ]".to_owned()),
-        );
-
-        event.as_mut_log().insert("third_thing", "safe");
-        event.as_mut_log().insert("other_thing", "bar");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ other_thing.neq: \"bar\" ]".to_owned())
-        );
-
-        event.as_mut_log().insert("message", "foo");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err(
-                "predicates failed: [ message.not_equals: \"foo\", other_thing.neq: \"bar\" ]"
-                    .to_owned()
-            )
-        );
-    }
-
-    #[test]
-    fn check_field_regex() {
-        let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
-        preds.insert(
-            "message.regex".into(),
-            CheckFieldsPredicateArg::String("^start".into()),
-        );
-        preds.insert(
-            "other_thing.regex".into(),
-            CheckFieldsPredicateArg::String("end$".into()),
-        );
-
-        let cond = CheckFieldsConfig { predicates: preds }.build().unwrap();
-
-        let mut event = Event::from("starts with a bang");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err(r#"predicates failed: [ other_thing.regex: "end$" ]"#.to_owned())
-        );
-
-        event.as_mut_log().insert("other_thing", "at the end");
-        assert_eq!(cond.check(&event), true);
-        assert_eq!(cond.check_with_context(&event), Ok(()));
-
-        event.as_mut_log().insert("other_thing", "end up here");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err(r#"predicates failed: [ other_thing.regex: "end$" ]"#.to_owned())
-        );
-
-        event.as_mut_log().insert("message", "foo");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err(
-                r#"predicates failed: [ message.regex: "^start", other_thing.regex: "end$" ]"#
-                    .to_owned()
-            )
-        );
-    }
-
-    #[test]
-    fn check_ip_cidr() {
-        let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
-        preds.insert(
-            "foo.ip_cidr_contains".into(),
-            CheckFieldsPredicateArg::String("10.0.0.0/8".into()),
-        );
-        preds.insert(
-            "bar.ip_cidr_contains".into(),
-            CheckFieldsPredicateArg::VecString(vec!["2000::/3".into(), "192.168.0.0/16".into()]),
-        );
-
-        let cond = CheckFieldsConfig { predicates: preds }.build().unwrap();
-
-        let mut event = Event::from("ignored message");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ foo.ip_cidr_contains: \"10.0.0.0/8\", bar.ip_cidr_contains: [\"2000::/3\", \"192.168.0.0/16\"] ]".to_owned()),
-        );
-
-        event.as_mut_log().insert("foo", "10.1.2.3");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err(
-                "predicates failed: [ bar.ip_cidr_contains: [\"2000::/3\", \"192.168.0.0/16\"] ]"
-                    .to_owned()
-            ),
-        );
-
-        event.as_mut_log().insert("bar", "2000::");
-        assert_eq!(cond.check(&event), true);
-        assert_eq!(cond.check_with_context(&event), Ok(()));
-
-        event.as_mut_log().insert("bar", "192.168.255.255");
-        assert_eq!(cond.check(&event), true);
-        assert_eq!(cond.check_with_context(&event), Ok(()));
-
-        event.as_mut_log().insert("foo", "192.200.200.200");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ foo.ip_cidr_contains: \"10.0.0.0/8\" ]".to_owned()),
-        );
-
-        event.as_mut_log().insert("foo", "not an ip");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ foo.ip_cidr_contains: \"10.0.0.0/8\" ]".to_owned()),
-        );
-    }
-
-    #[test]
-    fn check_field_exists() {
-        let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
-        preds.insert("foo.exists".into(), CheckFieldsPredicateArg::Boolean(true));
-        preds.insert("bar.exists".into(), CheckFieldsPredicateArg::Boolean(false));
-
-        let cond = CheckFieldsConfig { predicates: preds }.build().unwrap();
-
-        let mut event = Event::from("ignored field");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ foo.exists: true ]".to_owned())
-        );
-
-        event.as_mut_log().insert("foo", "not ignored");
-        assert_eq!(cond.check(&event), true);
-        assert_eq!(cond.check_with_context(&event), Ok(()));
-
-        event.as_mut_log().insert("bar", "also not ignored");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ bar.exists: false ]".to_owned())
-        );
-    }
-
-    #[test]
-    fn check_field_length_eq() {
-        let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
-        preds.insert("foo.length_eq".into(), CheckFieldsPredicateArg::Integer(10));
-        preds.insert("bar.length_eq".into(), CheckFieldsPredicateArg::Integer(4));
-
-        let cond = CheckFieldsConfig { predicates: preds }.build().unwrap();
-
-        let mut event = Event::from("");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ foo.length_eq: 10, bar.length_eq: 4 ]".to_owned())
-        );
-
-        event.as_mut_log().insert("foo", "helloworld");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ bar.length_eq: 4 ]".to_owned())
-        );
-
-        event.as_mut_log().insert("bar", vec![0, 1, 2, 3]);
-        assert_eq!(cond.check(&event), true);
-        assert_eq!(cond.check_with_context(&event), Ok(()));
-    }
-
-    #[test]
-    fn negate_predicate() {
-        let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
-        preds.insert(
-            "foo.not_exists".into(),
-            CheckFieldsPredicateArg::Boolean(true),
-        );
-        let cond = CheckFieldsConfig { predicates: preds }.build().unwrap();
-
-        let mut event = Event::from("ignored field");
-        assert_eq!(cond.check(&event), true);
-        assert_eq!(cond.check_with_context(&event), Ok(()));
-
-        event.as_mut_log().insert("foo", "not ignored");
-        assert_eq!(cond.check(&event), false);
-        assert_eq!(
-            cond.check_with_context(&event),
-            Err("predicates failed: [ foo.not_exists: true ]".into())
-        );
-    }
-}
+// #[cfg(test)]
+// mod test {
+//     use super::*;
+//     use crate::Event;
+//
+//     #[test]
+//     fn generate_config() {
+//         crate::test_util::test_generate_config::<CheckFieldsConfig>();
+//     }
+//
+//     #[test]
+//     fn check_predicate_errors() {
+//         let cases = vec![
+//             ("foo", "predicate not found in check_fields value 'foo', format must be <target>.<predicate>"),
+//             (".nah", "predicate not found in check_fields value '.nah', format must be <target>.<predicate>"),
+//             ("", "predicate not found in check_fields value '', format must be <target>.<predicate>"),
+//             ("what.", "predicate not found in check_fields value 'what.', format must be <target>.<predicate>"),
+//             ("foo.nix_real", "predicate type 'nix_real' not recognized"),
+//         ];
+//
+//         let mut aggregated_preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
+//         let mut exp_errs = Vec::new();
+//         for (pred, exp) in cases {
+//             aggregated_preds.insert(pred.into(), CheckFieldsPredicateArg::String("foo".into()));
+//             exp_errs.push(exp);
+//
+//             let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
+//             preds.insert(pred.into(), CheckFieldsPredicateArg::String("foo".into()));
+//
+//             assert_eq!(
+//                 CheckFieldsConfig { predicates: preds }
+//                     .build()
+//                     .err()
+//                     .unwrap()
+//                     .to_string(),
+//                 exp.to_owned()
+//             );
+//         }
+//
+//         let mut exp_err = exp_errs.join("\n");
+//         exp_err.insert_str(0, "failed to parse predicates:\n");
+//
+//         assert_eq!(
+//             CheckFieldsConfig {
+//                 predicates: aggregated_preds
+//             }
+//             .build()
+//             .err()
+//             .unwrap()
+//             .to_string(),
+//             exp_err
+//         );
+//     }
+//
+//     #[test]
+//     fn check_field_equals() {
+//         let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
+//         preds.insert(
+//             "message.equals".into(),
+//             CheckFieldsPredicateArg::String("foo".into()),
+//         );
+//         preds.insert(
+//             "other_thing.eq".into(),
+//             CheckFieldsPredicateArg::String("bar".into()),
+//         );
+//         preds.insert(
+//             "third_thing.eq".into(),
+//             CheckFieldsPredicateArg::VecString(vec!["hello".into(), "world".into()]),
+//         );
+//
+//         let cond = CheckFieldsConfig { predicates: preds }.build().unwrap();
+//
+//         let mut event = Event::from("neither");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err(
+//                 "predicates failed: [ message.equals: \"foo\", other_thing.eq: \"bar\", third_thing.eq: [\"hello\", \"world\"] ]"
+//                     .to_owned()
+//             )
+//         );
+//
+//         event.as_mut_log().insert("message", "foo");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ other_thing.eq: \"bar\", third_thing.eq: [\"hello\", \"world\"] ]".to_owned())
+//         );
+//
+//         event.as_mut_log().insert("other_thing", "bar");
+//         event.as_mut_log().insert("third_thing", "hello");
+//         assert_eq!(cond.check(&event), true);
+//         assert_eq!(cond.check_with_context(&event), Ok(()));
+//
+//         event.as_mut_log().insert("third_thing", "world");
+//         assert_eq!(cond.check(&event), true);
+//         assert_eq!(cond.check_with_context(&event), Ok(()));
+//
+//         event.as_mut_log().insert("message", "not foo");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ message.equals: \"foo\" ]".to_owned())
+//         );
+//     }
+//
+//     #[test]
+//     fn check_field_contains() {
+//         let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
+//         preds.insert(
+//             "message.contains".into(),
+//             CheckFieldsPredicateArg::String("foo".into()),
+//         );
+//         preds.insert(
+//             "other_thing.contains".into(),
+//             CheckFieldsPredicateArg::String("bar".into()),
+//         );
+//         preds.insert(
+//             "third_thing.contains".into(),
+//             CheckFieldsPredicateArg::VecString(vec!["hello".into(), "world".into()]),
+//         );
+//
+//         let cond = CheckFieldsConfig { predicates: preds }.build().unwrap();
+//
+//         let mut event = Event::from("neither");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err(
+//                 "predicates failed: [ message.contains: \"foo\", other_thing.contains: \"bar\", third_thing.contains: [\"hello\", \"world\"] ]"
+//                     .to_owned()
+//             )
+//         );
+//
+//         event.as_mut_log().insert("message", "hello foo world");
+//         event.as_mut_log().insert("third_thing", "hello world");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ other_thing.contains: \"bar\" ]".to_owned())
+//         );
+//
+//         event.as_mut_log().insert("other_thing", "hello bar world");
+//         assert_eq!(cond.check(&event), true);
+//         assert_eq!(cond.check_with_context(&event), Ok(()));
+//
+//         event
+//             .as_mut_log()
+//             .insert("third_thing", "not hell0 or w0rld");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ third_thing.contains: [\"hello\", \"world\"] ]".to_owned()),
+//         );
+//
+//         event.as_mut_log().insert("third_thing", "world");
+//         assert_eq!(cond.check(&event), true);
+//         assert_eq!(cond.check_with_context(&event), Ok(()));
+//
+//         event.as_mut_log().insert("message", "not fo0");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ message.contains: \"foo\" ]".to_owned())
+//         );
+//     }
+//
+//     #[test]
+//     fn check_field_prefix() {
+//         let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
+//         preds.insert(
+//             "message.prefix".into(),
+//             CheckFieldsPredicateArg::String("foo".into()),
+//         );
+//         preds.insert(
+//             "other_thing.prefix".into(),
+//             CheckFieldsPredicateArg::String("bar".into()),
+//         );
+//
+//         let cond = CheckFieldsConfig { predicates: preds }.build().unwrap();
+//
+//         let mut event = Event::from("neither");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err(
+//                 "predicates failed: [ message.prefix: \"foo\", other_thing.prefix: \"bar\" ]"
+//                     .to_owned()
+//             )
+//         );
+//
+//         event.as_mut_log().insert("message", "foo hello world");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ other_thing.prefix: \"bar\" ]".to_owned())
+//         );
+//
+//         event.as_mut_log().insert("other_thing", "bar hello world");
+//         assert_eq!(cond.check(&event), true);
+//         assert_eq!(cond.check_with_context(&event), Ok(()));
+//
+//         event.as_mut_log().insert("message", "not prefixed");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ message.prefix: \"foo\" ]".to_owned())
+//         );
+//     }
+//
+//     #[test]
+//     fn check_field_starts_with() {
+//         let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
+//         preds.insert(
+//             "message.starts_with".into(),
+//             CheckFieldsPredicateArg::String("foo".into()),
+//         );
+//         preds.insert(
+//             "other_thing.starts_with".into(),
+//             CheckFieldsPredicateArg::String("bar".into()),
+//         );
+//         preds.insert(
+//             "third_thing.starts_with".into(),
+//             CheckFieldsPredicateArg::VecString(vec!["hello".into(), "world".into()]),
+//         );
+//
+//         let cond = CheckFieldsConfig { predicates: preds }.build().unwrap();
+//
+//         let mut event = Event::from("neither");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err(
+//                 "predicates failed: [ message.starts_with: \"foo\", other_thing.starts_with: \"bar\", third_thing.starts_with: [\"hello\", \"world\"] ]"
+//                     .to_owned()
+//             )
+//         );
+//
+//         event.as_mut_log().insert("third_thing", "hello world");
+//         event.as_mut_log().insert("message", "foo hello world");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ other_thing.starts_with: \"bar\" ]".to_owned())
+//         );
+//
+//         event.as_mut_log().insert("other_thing", "bar hello world");
+//         assert_eq!(cond.check(&event), true);
+//         assert_eq!(cond.check_with_context(&event), Ok(()));
+//
+//         event
+//             .as_mut_log()
+//             .insert("third_thing", "wrong hello world");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err(
+//                 "predicates failed: [ third_thing.starts_with: [\"hello\", \"world\"] ]".to_owned()
+//             ),
+//         );
+//
+//         event.as_mut_log().insert("third_thing", "world");
+//         assert_eq!(cond.check(&event), true);
+//         assert_eq!(cond.check_with_context(&event), Ok(()));
+//
+//         event.as_mut_log().insert("message", "not prefixed");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ message.starts_with: \"foo\" ]".to_owned())
+//         );
+//     }
+//
+//     #[test]
+//     fn check_field_ends_with() {
+//         let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
+//         preds.insert(
+//             "message.ends_with".into(),
+//             CheckFieldsPredicateArg::String("foo".into()),
+//         );
+//         preds.insert(
+//             "other_thing.ends_with".into(),
+//             CheckFieldsPredicateArg::String("bar".into()),
+//         );
+//         preds.insert(
+//             "third_thing.ends_with".into(),
+//             CheckFieldsPredicateArg::VecString(vec!["hello".into(), "world".into()]),
+//         );
+//
+//         let cond = CheckFieldsConfig { predicates: preds }.build().unwrap();
+//
+//         let mut event = Event::from("neither");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err(
+//                 "predicates failed: [ message.ends_with: \"foo\", other_thing.ends_with: \"bar\", third_thing.ends_with: [\"hello\", \"world\"] ]"
+//                     .to_owned()
+//             )
+//         );
+//
+//         event.as_mut_log().insert("message", "hello world foo");
+//         event.as_mut_log().insert("third_thing", "hello world");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ other_thing.ends_with: \"bar\" ]".to_owned())
+//         );
+//
+//         event.as_mut_log().insert("other_thing", "hello world bar");
+//         assert_eq!(cond.check(&event), true);
+//         assert_eq!(cond.check_with_context(&event), Ok(()));
+//
+//         event.as_mut_log().insert("third_thing", "hello world bad");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ third_thing.ends_with: [\"hello\", \"world\"] ]".to_owned()),
+//         );
+//
+//         event.as_mut_log().insert("third_thing", "world hello");
+//         assert_eq!(cond.check(&event), true);
+//         assert_eq!(cond.check_with_context(&event), Ok(()));
+//
+//         event.as_mut_log().insert("message", "not suffixed");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ message.ends_with: \"foo\" ]".to_owned())
+//         );
+//     }
+//
+//     #[test]
+//     fn check_field_not_equals() {
+//         let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
+//         preds.insert(
+//             "message.not_equals".into(),
+//             CheckFieldsPredicateArg::String("foo".into()),
+//         );
+//         preds.insert(
+//             "other_thing.neq".into(),
+//             CheckFieldsPredicateArg::String("bar".into()),
+//         );
+//         preds.insert(
+//             "third_thing.neq".into(),
+//             CheckFieldsPredicateArg::VecString(vec!["hello".into(), "world".into()]),
+//         );
+//
+//         let cond = CheckFieldsConfig { predicates: preds }.build().unwrap();
+//
+//         let mut event = Event::from("not foo");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ other_thing.neq: \"bar\", third_thing.neq: [\"hello\", \"world\"] ]".to_owned())
+//         );
+//
+//         event.as_mut_log().insert("other_thing", "not bar");
+//         event
+//             .as_mut_log()
+//             .insert("third_thing", "not hello or world");
+//         assert_eq!(cond.check(&event), true);
+//         assert_eq!(cond.check_with_context(&event), Ok(()));
+//
+//         event.as_mut_log().insert("third_thing", "world");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ third_thing.neq: [\"hello\", \"world\"] ]".to_owned()),
+//         );
+//
+//         event.as_mut_log().insert("third_thing", "hello");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ third_thing.neq: [\"hello\", \"world\"] ]".to_owned()),
+//         );
+//
+//         event.as_mut_log().insert("third_thing", "safe");
+//         event.as_mut_log().insert("other_thing", "bar");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ other_thing.neq: \"bar\" ]".to_owned())
+//         );
+//
+//         event.as_mut_log().insert("message", "foo");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err(
+//                 "predicates failed: [ message.not_equals: \"foo\", other_thing.neq: \"bar\" ]"
+//                     .to_owned()
+//             )
+//         );
+//     }
+//
+//     #[test]
+//     fn check_field_regex() {
+//         let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
+//         preds.insert(
+//             "message.regex".into(),
+//             CheckFieldsPredicateArg::String("^start".into()),
+//         );
+//         preds.insert(
+//             "other_thing.regex".into(),
+//             CheckFieldsPredicateArg::String("end$".into()),
+//         );
+//
+//         let cond = CheckFieldsConfig { predicates: preds }.build().unwrap();
+//
+//         let mut event = Event::from("starts with a bang");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err(r#"predicates failed: [ other_thing.regex: "end$" ]"#.to_owned())
+//         );
+//
+//         event.as_mut_log().insert("other_thing", "at the end");
+//         assert_eq!(cond.check(&event), true);
+//         assert_eq!(cond.check_with_context(&event), Ok(()));
+//
+//         event.as_mut_log().insert("other_thing", "end up here");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err(r#"predicates failed: [ other_thing.regex: "end$" ]"#.to_owned())
+//         );
+//
+//         event.as_mut_log().insert("message", "foo");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err(
+//                 r#"predicates failed: [ message.regex: "^start", other_thing.regex: "end$" ]"#
+//                     .to_owned()
+//             )
+//         );
+//     }
+//
+//     #[test]
+//     fn check_ip_cidr() {
+//         let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
+//         preds.insert(
+//             "foo.ip_cidr_contains".into(),
+//             CheckFieldsPredicateArg::String("10.0.0.0/8".into()),
+//         );
+//         preds.insert(
+//             "bar.ip_cidr_contains".into(),
+//             CheckFieldsPredicateArg::VecString(vec!["2000::/3".into(), "192.168.0.0/16".into()]),
+//         );
+//
+//         let cond = CheckFieldsConfig { predicates: preds }.build().unwrap();
+//
+//         let mut event = Event::from("ignored message");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ foo.ip_cidr_contains: \"10.0.0.0/8\", bar.ip_cidr_contains: [\"2000::/3\", \"192.168.0.0/16\"] ]".to_owned()),
+//         );
+//
+//         event.as_mut_log().insert("foo", "10.1.2.3");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err(
+//                 "predicates failed: [ bar.ip_cidr_contains: [\"2000::/3\", \"192.168.0.0/16\"] ]"
+//                     .to_owned()
+//             ),
+//         );
+//
+//         event.as_mut_log().insert("bar", "2000::");
+//         assert_eq!(cond.check(&event), true);
+//         assert_eq!(cond.check_with_context(&event), Ok(()));
+//
+//         event.as_mut_log().insert("bar", "192.168.255.255");
+//         assert_eq!(cond.check(&event), true);
+//         assert_eq!(cond.check_with_context(&event), Ok(()));
+//
+//         event.as_mut_log().insert("foo", "192.200.200.200");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ foo.ip_cidr_contains: \"10.0.0.0/8\" ]".to_owned()),
+//         );
+//
+//         event.as_mut_log().insert("foo", "not an ip");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ foo.ip_cidr_contains: \"10.0.0.0/8\" ]".to_owned()),
+//         );
+//     }
+//
+//     #[test]
+//     fn check_field_exists() {
+//         let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
+//         preds.insert("foo.exists".into(), CheckFieldsPredicateArg::Boolean(true));
+//         preds.insert("bar.exists".into(), CheckFieldsPredicateArg::Boolean(false));
+//
+//         let cond = CheckFieldsConfig { predicates: preds }.build().unwrap();
+//
+//         let mut event = Event::from("ignored field");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ foo.exists: true ]".to_owned())
+//         );
+//
+//         event.as_mut_log().insert("foo", "not ignored");
+//         assert_eq!(cond.check(&event), true);
+//         assert_eq!(cond.check_with_context(&event), Ok(()));
+//
+//         event.as_mut_log().insert("bar", "also not ignored");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ bar.exists: false ]".to_owned())
+//         );
+//     }
+//
+//     #[test]
+//     fn check_field_length_eq() {
+//         let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
+//         preds.insert("foo.length_eq".into(), CheckFieldsPredicateArg::Integer(10));
+//         preds.insert("bar.length_eq".into(), CheckFieldsPredicateArg::Integer(4));
+//
+//         let cond = CheckFieldsConfig { predicates: preds }.build().unwrap();
+//
+//         let mut event = Event::from("");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ foo.length_eq: 10, bar.length_eq: 4 ]".to_owned())
+//         );
+//
+//         event.as_mut_log().insert("foo", "helloworld");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ bar.length_eq: 4 ]".to_owned())
+//         );
+//
+//         event.as_mut_log().insert("bar", vec![0, 1, 2, 3]);
+//         assert_eq!(cond.check(&event), true);
+//         assert_eq!(cond.check_with_context(&event), Ok(()));
+//     }
+//
+//     #[test]
+//     fn negate_predicate() {
+//         let mut preds: IndexMap<String, CheckFieldsPredicateArg> = IndexMap::new();
+//         preds.insert(
+//             "foo.not_exists".into(),
+//             CheckFieldsPredicateArg::Boolean(true),
+//         );
+//         let cond = CheckFieldsConfig { predicates: preds }.build().unwrap();
+//
+//         let mut event = Event::from("ignored field");
+//         assert_eq!(cond.check(&event), true);
+//         assert_eq!(cond.check_with_context(&event), Ok(()));
+//
+//         event.as_mut_log().insert("foo", "not ignored");
+//         assert_eq!(cond.check(&event), false);
+//         assert_eq!(
+//             cond.check_with_context(&event),
+//             Err("predicates failed: [ foo.not_exists: true ]".into())
+//         );
+//     }
+// }
