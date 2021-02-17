@@ -24,7 +24,7 @@ static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
 mod buffers;
 #[macro_use]
-mod config;
+pub mod config;
 mod conditions;
 mod dns;
 mod event;
