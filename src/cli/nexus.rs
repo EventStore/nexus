@@ -4,4 +4,3 @@ use nexus::vector;
 fn main() {
     vector::run();
 }
-

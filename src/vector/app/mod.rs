@@ -1,7 +1,6 @@
 use vector::app::Application;
 use vector::config::TransformDescription;
 
-
 pub fn run() {
     println!("Available transformers:");
     for transformer in inventory::iter::<TransformDescription> {
