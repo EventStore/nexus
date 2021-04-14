@@ -11,8 +11,6 @@ edition = "2018"
 # default = []
 
 [dependencies]
-vector = { path = "./vector", default-features = false, features = [ "sources", "sinks", "transforms", "unix"] }
-
 async-trait = "0.1.48"
 chrono = { version = "0.4.19", features = ["serde"] }
 futures = "0.3.13"
@@ -35,6 +33,12 @@ metrics = { version = "0.14", default-features = false }
 tokio-stream = { version = "0.1.5", default-features = false, features = ["net", "sync"] }
 hyper = { version = "0.14", default-features = false, features = ["stream"] }
 hyper-openssl = { version = "0.9.1", default-features = false, features = ["tcp"] }
+
+[dependencies.vector]
+git = "https://github.com/timberio/vector.git"
+ref = "01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+default-features = false
+features = [ "sources", "sinks", "transforms", "unix" ]
 
 [lib]
 name = "nexus"
