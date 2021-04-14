@@ -1,0 +1,11 @@
+# Random Syslog-formatted logs
+[sources.esdb]
+connection_string = "esdb+discover://admin:changeit@bv56s32rh41jl17k8ud0.mesdb.eventstore.cloud:2113"
+filter.by_stream_regex = "^test_[0-9a-f]{32}$"
+type = "eventstoredb"
+
+# Print parsed logs to stdout
+[sinks.print]
+encoding.codec = "json"
+inputs = ["esdb"]
+type = "console"
