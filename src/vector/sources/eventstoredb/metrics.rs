@@ -11,7 +11,7 @@ use vector::{
 };
 
 #[derive(Deserialize, Serialize, Clone, Debug, Default)]
-struct EventStoreDbConfig {
+pub struct EventStoreDbConfig {
     #[serde(default = "default_endpoint")]
     endpoint: String,
     #[serde(default = "default_scrape_interval_secs")]
@@ -54,7 +54,7 @@ impl SourceConfig for EventStoreDbConfig {
     }
 }
 
-fn eventstoredb(
+pub fn eventstoredb(
     endpoint: &str,
     interval: u64,
     namespace: Option<String>,
