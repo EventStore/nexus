@@ -718,7 +718,7 @@ dependencies = [
 [[package]]
 name = "codec"
 version = "0.1.0"
-source = "git+https://github.com/timberio/vector.git#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
 dependencies = [
  "bytes 1.0.1",
  "tokio-util",
@@ -1060,7 +1060,7 @@ dependencies = [
 [[package]]
 name = "derive_is_enum_variant"
 version = "1.0.0"
-source = "git+https://github.com/timberio/vector.git#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -1294,7 +1294,7 @@ checksum = "e88a8acf291dafb59c2d96e8f59828f3838bb1a70398823ade51a84de6a6deed"
 [[package]]
 name = "fakedata"
 version = "0.1.0"
-source = "git+https://github.com/timberio/vector.git#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
 dependencies = [
  "chrono",
  "fakedata_generator",
@@ -1330,7 +1330,7 @@ dependencies = [
 [[package]]
 name = "file-source"
 version = "0.1.0"
-source = "git+https://github.com/timberio/vector.git#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
 dependencies = [
  "bstr",
  "bytes 1.0.1",
@@ -2901,6 +2901,7 @@ dependencies = [
  "metrics",
  "prost",
  "prost-types",
+ "regex",
  "rustls 0.19.0",
  "serde",
  "serde_json",
@@ -3414,7 +3415,7 @@ dependencies = [
 [[package]]
 name = "portpicker"
 version = "1.0.0"
-source = "git+https://github.com/timberio/vector.git#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
 dependencies = [
  "rand 0.8.3",
 ]
@@ -3531,7 +3532,7 @@ dependencies = [
 [[package]]
 name = "prometheus-parser"
 version = "0.1.0"
-source = "git+https://github.com/timberio/vector.git#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
 dependencies = [
  "indexmap",
  "nom",
@@ -4605,7 +4606,7 @@ dependencies = [
 [[package]]
 name = "shared"
 version = "0.1.0"
-source = "git+https://github.com/timberio/vector.git#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
 dependencies = [
  "bytes 1.0.1",
  "chrono",
@@ -5430,7 +5431,7 @@ dependencies = [
 [[package]]
 name = "tracing-limit"
 version = "0.1.0"
-source = "git+https://github.com/timberio/vector.git#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
 dependencies = [
  "ansi_term 0.12.1",
  "dashmap",
@@ -5737,7 +5738,7 @@ checksum = "f1bddf1187be692e79c5ffeab891132dfb0f236ed36a43c7ed39f1165ee20191"
 [[package]]
 name = "vector"
 version = "0.13.0"
-source = "git+https://github.com/timberio/vector.git#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -5880,7 +5881,7 @@ checksum = "5fecdca9a5291cc2b8dcf7dc02453fee791a280f3743cb0905f8822ae463b3fe"
 [[package]]
 name = "vrl"
 version = "0.1.0"
-source = "git+https://github.com/timberio/vector.git#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
 dependencies = [
  "bytes 1.0.1",
  "indoc",
@@ -5894,7 +5895,7 @@ dependencies = [
 [[package]]
 name = "vrl-compiler"
 version = "0.1.0"
-source = "git+https://github.com/timberio/vector.git#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
 dependencies = [
  "bitflags",
  "bytes 1.0.1",
@@ -5914,7 +5915,7 @@ dependencies = [
 [[package]]
 name = "vrl-diagnostic"
 version = "0.1.0"
-source = "git+https://github.com/timberio/vector.git#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
 dependencies = [
  "codespan-reporting",
  "termcolor",
@@ -5923,7 +5924,7 @@ dependencies = [
 [[package]]
 name = "vrl-parser"
 version = "0.1.0"
-source = "git+https://github.com/timberio/vector.git#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
 dependencies = [
  "lalrpop",
  "lalrpop-util",
@@ -5936,7 +5937,7 @@ dependencies = [
 [[package]]
 name = "vrl-stdlib"
 version = "0.1.0"
-source = "git+https://github.com/timberio/vector.git#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
 dependencies = [
  "base64 0.13.0",
  "bytes 1.0.1",

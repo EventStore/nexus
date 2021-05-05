@@ -33,10 +33,11 @@ metrics = { version = "0.14", default-features = false }
 tokio-stream = { version = "0.1.5", default-features = false, features = ["net", "sync"] }
 hyper = { version = "0.14", default-features = false, features = ["stream"] }
 hyper-openssl = { version = "0.9.1", default-features = false, features = ["tcp"] }
+regex = "1"
 
 [dependencies.vector]
 git = "https://github.com/timberio/vector.git"
-ref = "01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+rev = "01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
 default-features = false
 features = [ "sources", "sinks", "transforms", "unix" ]
 
