@@ -91,34 +91,24 @@ pub async fn get_disk_queue_length(
             }
             Ok(content) => {
                 for line in content.lines() {
-                    let mut index = 0usize;
-                    let mut disk: Option<String> = None;
-                    for word in line.split_whitespace() {
-                        if index == 2 {
-                            if !disk_regexes.iter().any(|regex| regex.is_match(word)) {
-                                break;
-                            } else {
-                                disk = Some(word.to_string());
-                            }
-                        }
-
-                        // Position of the disk queue length value.
-                        if index == 11 {
-                            match word.parse::<usize>() {
-                                Err(e) => {
-                                    vector::emit!(ParsingError(Box::new(e)));
-                                    break;
-                                }
-
-                                Ok(value) => {
-                                    results.push(DiskQueueLengthResult {
-                                        disk: disk.clone().unwrap_or("???".to_string()),
-                                        value: value as f64,
-                                    });
+                    let mut words = line.split_whitespace();
+                    if let Some(word) = words.nth(2) {
+                        if disk_regexes.iter().any(|regex| regex.is_match(word)) {
+                            let disk = word.to_string();
+                            if let Some(word) = words.nth(8) {
+                                match word.parse::<usize>() {
+                                    Err(e) => {
+                                        vector::emit!(ParsingError(Box::new(e)));
+                                    }
+                                    Ok(value) => {
+                                        results.push(DiskQueueLengthResult {
+                                            disk,
+                                            value: value as f64,
+                                        });
+                                    }
                                 }
                             }
                         }
-                        index += 1;
                     }
                 }
             }
@@ -140,7 +130,7 @@ async fn test_get_disk_queue_length() {
    4       3 sda2  3 0 6  7  0 0  0  0   0 1 2 0 0 0 0
      "#;
     let r = std::io::Write::write(&mut file, diskstats.as_bytes());
-    std::io::Write::flush(&mut file);
+    std::io::Write::flush(&mut file).expect("flush failed");
     let count = r.unwrap();
     assert_eq!(diskstats.len(), count);
     let file_path = file
