@@ -117,109 +117,6 @@ pub async fn get_disk_queue_length(
     return results;
 }
 
-#[tokio::main]
-#[test]
-async fn test_get_disk_queue_length() {
-    struct Test {
-        pub diskstats: &'static str,
-        pub expected_results: Vec<DiskQueueLengthResult>,
-    }
-
-    let tests = vec![
-        Test {
-            diskstats: r#"
-   1       0 loop0 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0
-   1       1 loop1 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0
-   1       2 loop2 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0   
-   2       0 sda   1 0 4  8  9 0 13 14   2 1 2 0 0 0 0
-   3       2 sda1  2 0 5 10 12 0 15  1   1 2 2 0 0 0 0
-   4       3 sda2  3 0 6  7  0 0  0  0   0 1 2 0 0 0 0
-     "#,
-            expected_results: vec![
-                DiskQueueLengthResult {
-                    disk: "sda".to_string(),
-                    value: 2.0,
-                },
-                DiskQueueLengthResult {
-                    disk: "sda1".to_string(),
-                    value: 1.0,
-                },
-                DiskQueueLengthResult {
-                    disk: "sda2".to_string(),
-                    value: 0.0,
-                },
-            ],
-        },
-        Test {
-            diskstats: r#"
-     "#,
-            expected_results: vec![],
-        },
-        Test {
-            diskstats: r#"
-   1       0 loop0 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0
-   1       1 loop1 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0
-   1       2 loop2 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0   
-   2       0 sda   1 0 4  8  9 0 13 14   2 1 2 0 0 0 0
-   3       2 sda1  2 0 5 10 12 0 15  1   1 2 2 0 0 0 0
-   4       3 sda2  3 0 6  7  0 0  0  0 4.5 1 2 0 0 0 0
-     "#,
-            expected_results: vec![
-                DiskQueueLengthResult {
-                    disk: "sda".to_string(),
-                    value: 2.0,
-                },
-                DiskQueueLengthResult {
-                    disk: "sda1".to_string(),
-                    value: 1.0,
-                },
-            ],
-        },
-        Test {
-            diskstats: r#"
-   1       0 loop0 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0
-   1       1 loop1 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0
-   1       2 loop2 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0   
-   2       0 sda   1 0 4  8 
-   3       2 sda1  2 0 5 10 12 0 15  1   1 2 2 0 0 0 0
-   4  
-   5       3 sda2  
-     "#,
-            expected_results: vec![DiskQueueLengthResult {
-                disk: "sda1".to_string(),
-                value: 1.0,
-            }],
-        },
-    ];
-
-    for test in tests {
-        let mut file = tempfile::NamedTempFile::new().expect("couldn't make temp file");
-        let r = std::io::Write::write(&mut file, test.diskstats.as_bytes());
-        std::io::Write::flush(&mut file).expect("flush failed");
-        let count = r.unwrap();
-        assert_eq!(test.diskstats.len(), count);
-        let file_path = file
-            .path()
-            .to_str()
-            .expect("temp file not a string")
-            .to_string();
-        let disk_regexes: Vec<regex::Regex> =
-            vec![regex::Regex::new("sda").expect("failure to make simple regex")];
-        let results = get_disk_queue_length(&file_path, &disk_regexes).await;
-        assert_eq!(test.expected_results, results);
-    }
-}
-
-#[tokio::main]
-#[test]
-async fn test_get_disk_queue_length_with_missing() {
-    let disk_regexes: Vec<regex::Regex> =
-        vec![regex::Regex::new("sda").expect("failure to make simple regex")];
-    // NOTE: test will fail if the file "jdfsuhvdshfvioushdfdsj" is present
-    let result = get_disk_queue_length("jdfsuhvdshfvioushdfdsj", &disk_regexes).await;
-    assert_eq!(Vec::<DiskQueueLengthResult>::new(), result);
-}
-
 #[async_trait::async_trait]
 #[typetag::serde(name = "disk_queue_length")]
 impl SourceConfig for DiskQueueLengthConfig {
@@ -282,5 +179,115 @@ impl SourceConfig for DiskQueueLengthConfig {
 
     fn source_type(&self) -> &'static str {
         "disk_queue_length"
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::main]
+    #[test]
+    async fn test_get_disk_queue_length() {
+        struct Test {
+            pub diskstats: &'static str,
+            pub expected_results: Vec<DiskQueueLengthResult>,
+        }
+
+        let tests = vec![
+            // A typical diskstats file
+            Test {
+                diskstats: r#"
+   1       0 loop0 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0
+   1       1 loop1 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0
+   1       2 loop2 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0   
+   2       0 sda   1 0 4  8  9 0 13 14   2 1 2 0 0 0 0
+   3       2 sda1  2 0 5 10 12 0 15  1   1 2 2 0 0 0 0
+   4       3 sda2  3 0 6  7  0 0  0  0   0 1 2 0 0 0 0
+     "#,
+                expected_results: vec![
+                    DiskQueueLengthResult {
+                        disk: "sda".to_string(),
+                        value: 2.0,
+                    },
+                    DiskQueueLengthResult {
+                        disk: "sda1".to_string(),
+                        value: 1.0,
+                    },
+                    DiskQueueLengthResult {
+                        disk: "sda2".to_string(),
+                        value: 0.0,
+                    },
+                ],
+            },
+            Test {
+                diskstats: r#"
+     "#,
+                expected_results: vec![],
+            },
+            // This one has a float instead of an integer for sda2
+            Test {
+                diskstats: r#"
+   1       0 loop0 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0
+   1       1 loop1 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0
+   1       2 loop2 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0   
+   2       0 sda   1 0 4  8  9 0 13 14   2 1 2 0 0 0 0
+   3       2 sda1  2 0 5 10 12 0 15  1   1 2 2 0 0 0 0
+   4       3 sda2  3 0 6  7  0 0  0  0 4.5 1 2 0 0 0 0
+     "#,
+                expected_results: vec![
+                    DiskQueueLengthResult {
+                        disk: "sda".to_string(),
+                        value: 2.0,
+                    },
+                    DiskQueueLengthResult {
+                        disk: "sda1".to_string(),
+                        value: 1.0,
+                    },
+                ],
+            },
+            // this one is malformed
+            Test {
+                diskstats: r#"
+   1       0 loop0 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0
+   1       1 loop1 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0
+   1       2 loop2 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0   
+   2       0 sda   1 0 4  8 
+   3       2 sda1  2 0 5 10 12 0 15  1   1 2 2 0 0 0 0
+   4  
+   5       3 sda2  
+     "#,
+                expected_results: vec![DiskQueueLengthResult {
+                    disk: "sda1".to_string(),
+                    value: 1.0,
+                }],
+            },
+        ];
+
+        for test in tests {
+            let mut file = tempfile::NamedTempFile::new().expect("couldn't make temp file");
+            let r = std::io::Write::write(&mut file, test.diskstats.as_bytes());
+            std::io::Write::flush(&mut file).expect("flush failed");
+            let count = r.unwrap();
+            assert_eq!(test.diskstats.len(), count);
+            let file_path = file
+                .path()
+                .to_str()
+                .expect("temp file not a string")
+                .to_string();
+            let disk_regexes: Vec<regex::Regex> =
+                vec![regex::Regex::new("sda").expect("failure to make simple regex")];
+            let results = get_disk_queue_length(&file_path, &disk_regexes).await;
+            assert_eq!(test.expected_results, results);
+        }
+    }
+    #[tokio::main]
+    #[test]
+    async fn test_get_disk_queue_length_when_file_is_missing() {
+        let disk_regexes: Vec<regex::Regex> =
+            vec![regex::Regex::new("sda").expect("failure to make simple regex")];
+        // NOTE: test will fail if the file "jdfsuhvdshfvioushdfdsj" is present
+        let result = get_disk_queue_length("jdfsuhvdshfvioushdfdsj", &disk_regexes).await;
+        assert_eq!(Vec::<DiskQueueLengthResult>::new(), result);
     }
 }
