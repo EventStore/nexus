@@ -149,6 +149,7 @@ impl SourceConfig for DiskQueueLengthConfig {
                     if results.len() < 1 {
                         vector::emit!(DiskNotFound);
                     } else {
+                        let timestamp = chrono::Utc::now();
                         for r in results {
                             let mut tags = std::collections::BTreeMap::new();
 
@@ -160,7 +161,7 @@ impl SourceConfig for DiskQueueLengthConfig {
                             )
                             .with_namespace(namespace.clone())
                             .with_tags(Some(tags))
-                            .with_timestamp(Some(chrono::Utc::now()));
+                            .with_timestamp(Some(timestamp));
                             if out.send(Event::Metric(metric)).await.is_err() {
                                 break;
                             }
