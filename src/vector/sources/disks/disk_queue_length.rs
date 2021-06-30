@@ -69,6 +69,60 @@ inventory::submit! {
 
 vector::impl_generate_config_from_default!(DiskQueueLengthConfig);
 
+pub struct DiskQueueLengthResult {
+    pub column: String,
+    pub value: f64,
+}
+
+pub async fn get_disk_queue_length(
+    file_path: &'static str,
+    disk_regexes: &Vec<regex::Regex>,
+) -> Vec<DiskQueueLengthResult> {
+    let mut results = Vec::new();
+
+    match tokio::fs::read(file_path).await {
+        Err(e) => {
+            vector::emit!(FileSystemError(e));
+        }
+        Ok(content) => match String::from_utf8(content) {
+            Err(e) => {
+                vector::emit!(ParsingError(Box::new(e)));
+            }
+            Ok(content) => {
+                for line in content.lines() {
+                    let mut index = 0usize;
+                    for column in line.split_whitespace() {
+                        if index == 2 {
+                            if !disk_regexes.iter().any(|regex| regex.is_match(column)) {
+                                break;
+                            }
+                        }
+
+                        // Position of the disk queue length value.
+                        if index == 11 {
+                            match column.parse::<usize>() {
+                                Err(e) => {
+                                    vector::emit!(ParsingError(Box::new(e)));
+                                    break;
+                                }
+
+                                Ok(value) => {
+                                    results.push(DiskQueueLengthResult {
+                                        column: column.to_string(),
+                                        value: value as f64,
+                                    });
+                                }
+                            }
+                        }
+                        index += 1;
+                    }
+                }
+            }
+        },
+    };
+    return results;
+}
+
 #[async_trait::async_trait]
 #[typetag::serde(name = "disk_queue_length")]
 impl SourceConfig for DiskQueueLengthConfig {
@@ -97,85 +151,26 @@ impl SourceConfig for DiskQueueLengthConfig {
         Ok(Box::pin(
             async move {
                 while ticks.next().await.is_some() {
-                    match tokio::fs::read("/proc/diskstats").await {
-                        Err(e) => {
-                            vector::emit!(FileSystemError(e));
-                            continue;
+                    let results = get_disk_queue_length("/proc/diskstats", &disk_regexes).await;
+                    if results.len() < 1 {
+                        vector::emit!(DiskNotFound);
+                    } else {
+                        for r in results {
+                            let mut tags = std::collections::BTreeMap::new();
+
+                            tags.insert("disk".to_string(), r.column.to_string());
+                            let metric = Metric::new(
+                                "disk_queue_length",
+                                MetricKind::Absolute,
+                                MetricValue::Gauge { value: r.value },
+                            )
+                            .with_namespace(namespace.clone())
+                            .with_tags(Some(tags))
+                            .with_timestamp(Some(chrono::Utc::now()));
+                            if out.send(Event::Metric(metric)).await.is_err() {
+                                break;
+                            }
                         }
-
-                        Ok(content) => match String::from_utf8(content) {
-                            Err(e) => {
-                                vector::emit!(ParsingError(Box::new(e)));
-                                continue;
-                            }
-
-                            Ok(content) => {
-                                let mut metric = None;
-
-                                for line in content.lines() {
-                                    let mut index = 0usize;
-                                    for column in line.split_whitespace() {
-                                        if index == 2 {
-                                            if !disk_regexes
-                                                .iter()
-                                                .any(|regex| regex.is_match(column))
-                                            {
-                                                break;
-                                            }
-                                        }
-
-                                        // Position of the disk queue length value.
-                                        if index == 11 {
-                                            match column.parse::<usize>() {
-                                                Err(e) => {
-                                                    vector::emit!(ParsingError(Box::new(e)));
-                                                    break;
-                                                }
-
-                                                Ok(value) => {
-                                                    let mut tags =
-                                                        std::collections::BTreeMap::new();
-
-                                                    tags.insert(
-                                                        "disk".to_string(),
-                                                        column.to_string(),
-                                                    );
-
-                                                    metric = Some(
-                                                        Metric::new(
-                                                            "disk_queue_length",
-                                                            MetricKind::Absolute,
-                                                            MetricValue::Gauge {
-                                                                value: value as f64,
-                                                            },
-                                                        )
-                                                        .with_namespace(namespace.clone())
-                                                        .with_tags(Some(tags))
-                                                        .with_timestamp(Some(chrono::Utc::now())),
-                                                    );
-                                                }
-                                            }
-
-                                            break;
-                                        }
-
-                                        index += 1;
-                                    }
-
-                                    if metric.is_some() {
-                                        break;
-                                    }
-                                }
-
-                                if let Some(metric) = metric {
-                                    if out.send(Event::Metric(metric)).await.is_err() {
-                                        break;
-                                    }
-                                } else {
-                                    vector::emit!(DiskNotFound);
-                                }
-                            }
-                        },
                     }
                 }
             }

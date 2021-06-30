@@ -48,3 +48,7 @@ path = "src/lib.rs"
 [[bin]]
 name = "nexus"
 path = "src/cli/nexus.rs"
+
+[[bin]]
+name = "show-disk-queue-length"
+path = "src/cli/show-disk-queue-length.rs"
