@@ -2906,6 +2906,7 @@ dependencies = [
  "serde",
  "serde_json",
  "structopt",
+ "tempfile",
  "tokio",
  "tokio-stream",
  "toml",

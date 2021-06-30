@@ -19,7 +19,7 @@ async fn main() {
         println!("Couldn't find any disks with the given regexes");
     } else {
         for r in results {
-            println!("{} {}", r.column, r.value);
+            println!("{} {}", r.disk, r.value);
         }
     }
 }

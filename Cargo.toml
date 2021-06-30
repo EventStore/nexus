@@ -35,6 +35,9 @@ hyper = { version = "0.14", default-features = false, features = ["stream"] }
 hyper-openssl = { version = "0.9.1", default-features = false, features = ["tcp"] }
 regex = "1"
 
+[dev-dependencies]
+tempfile = "3.2.0"
+
 [dependencies.vector]
 git = "https://github.com/timberio/vector.git"
 rev = "01ea5d1db9e35aa951059cbcac8d172f5d67acd3"

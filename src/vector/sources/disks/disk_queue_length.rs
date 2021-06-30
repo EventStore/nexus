@@ -69,13 +69,14 @@ inventory::submit! {
 
 vector::impl_generate_config_from_default!(DiskQueueLengthConfig);
 
+#[derive(Debug, PartialEq)]
 pub struct DiskQueueLengthResult {
-    pub column: String,
+    pub disk: String,
     pub value: f64,
 }
 
 pub async fn get_disk_queue_length(
-    file_path: &'static str,
+    file_path: impl AsRef<std::path::Path>,
     disk_regexes: &Vec<regex::Regex>,
 ) -> Vec<DiskQueueLengthResult> {
     let mut results = Vec::new();
@@ -91,16 +92,19 @@ pub async fn get_disk_queue_length(
             Ok(content) => {
                 for line in content.lines() {
                     let mut index = 0usize;
-                    for column in line.split_whitespace() {
+                    let mut disk: Option<String> = None;
+                    for word in line.split_whitespace() {
                         if index == 2 {
-                            if !disk_regexes.iter().any(|regex| regex.is_match(column)) {
+                            if !disk_regexes.iter().any(|regex| regex.is_match(word)) {
                                 break;
+                            } else {
+                                disk = Some(word.to_string());
                             }
                         }
 
                         // Position of the disk queue length value.
                         if index == 11 {
-                            match column.parse::<usize>() {
+                            match word.parse::<usize>() {
                                 Err(e) => {
                                     vector::emit!(ParsingError(Box::new(e)));
                                     break;
@@ -108,7 +112,7 @@ pub async fn get_disk_queue_length(
 
                                 Ok(value) => {
                                     results.push(DiskQueueLengthResult {
-                                        column: column.to_string(),
+                                        disk: disk.clone().unwrap_or("???".to_string()),
                                         value: value as f64,
                                     });
                                 }
@@ -121,6 +125,50 @@ pub async fn get_disk_queue_length(
         },
     };
     return results;
+}
+
+#[tokio::main]
+#[test]
+async fn test_get_disk_queue_length() {
+    let mut file = tempfile::NamedTempFile::new().expect("couldn't make temp file");
+    let diskstats = r#"
+   1       0 loop0 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0
+   1       1 loop1 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0
+   1       2 loop2 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0   
+   2       0 sda   1 0 4  8  9 0 13 14   2 1 2 0 0 0 0
+   3       2 sda1  2 0 5 10 12 0 15  1   1 2 2 0 0 0 0
+   4       3 sda2  3 0 6  7  0 0  0  0   0 1 2 0 0 0 0
+     "#;
+    let r = std::io::Write::write(&mut file, diskstats.as_bytes());
+    std::io::Write::flush(&mut file);
+    let count = r.unwrap();
+    assert_eq!(diskstats.len(), count);
+    let file_path = file
+        .path()
+        .to_str()
+        .expect("temp file not a string")
+        .to_string();
+    let disk_regexes: Vec<regex::Regex> =
+        vec![regex::Regex::new("sda").expect("failure to make simple regex")];
+    println!("file_path = {}", file_path);
+    let result = get_disk_queue_length(&file_path, &disk_regexes).await;
+    assert_eq!(
+        vec![
+            DiskQueueLengthResult {
+                disk: "sda".to_string(),
+                value: 2.0
+            },
+            DiskQueueLengthResult {
+                disk: "sda1".to_string(),
+                value: 1.0
+            },
+            DiskQueueLengthResult {
+                disk: "sda2".to_string(),
+                value: 0.0
+            }
+        ],
+        result
+    );
 }
 
 #[async_trait::async_trait]
@@ -158,7 +206,7 @@ impl SourceConfig for DiskQueueLengthConfig {
                         for r in results {
                             let mut tags = std::collections::BTreeMap::new();
 
-                            tags.insert("disk".to_string(), r.column.to_string());
+                            tags.insert("disk".to_string(), r.disk.to_string());
                             let metric = Metric::new(
                                 "disk_queue_length",
                                 MetricKind::Absolute,
