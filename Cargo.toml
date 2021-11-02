@@ -40,7 +40,7 @@ tempfile = "3.2.0"
 
 [dependencies.vector]
 git = "https://github.com/YoEight/vector.git"
-rev = "b0e3cf4fb25c79db2853a4d00d48dbe5fe66deaf"
+rev = "f375c0d05f6cfbce806406e3df3a6eb7aedd40cd"
 default-features = false
 features = [ "sources", "sinks", "transforms", "unix" ]
 
