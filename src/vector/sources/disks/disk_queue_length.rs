@@ -7,8 +7,7 @@ use tokio_stream::wrappers::IntervalStream;
 use vector::internal_events::InternalEvent;
 use vector::{
     config::{self, SourceConfig, SourceContext, SourceDescription},
-    event::{Metric, MetricKind, MetricValue},
-    Event,
+    event::{Event, Metric, MetricKind, MetricValue},
 };
 
 struct ParsingError(Box<dyn std::error::Error + Send + 'static>);
