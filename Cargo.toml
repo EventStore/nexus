@@ -20,13 +20,13 @@ tracing = "0.1.25"
 http = "0.2"
 metrics = { version = "0.16.0", default-features = false }
 tokio-stream = { version = "0.1.5", default-features = false, features = ["net", "sync"] }
-hyper = { version = "0.14", default-features = false, features = ["stream"] }
-hyper-openssl = { version = "0.9.1", default-features = false, features = ["tcp"] }
+hyper = { version = "0.14.10", default-features = false, features = ["stream"] }
+hyper-openssl = { version = "0.9.1", default-features = false, features = ["tcp"]}
 regex = "1.5.4"
 
 [dependencies.vector]
 git = "https://github.com/vectordotdev/vector.git"
-rev = "5f3a31992a2b781b643c77a356d1ea713149fd1f"
+rev = "a216c34f5495731cd6d364c020e208365067c467"
 default-features = false
 features = [ "sources", "sinks", "transforms", "unix" ]
 
