@@ -4,21 +4,11 @@ version = "0.1.0"
 authors = ["Yorick Laupa <yorick.laupa@eventstore.com>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-# [features]
-#default = ["libz-sys/static"]
-# default = []
-
 [dependencies]
 async-trait = "0.1.48"
 chrono = { version = "0.4.19", features = ["serde"] }
 futures = "0.3.13"
 inventory = "0.1.10"
-lazy_static = "1.3.0"
-libxid = { git = "https://github.com/EventStore/libxid.git", branch = "enhance-platform-id" }
-prost = "0.7.0"
-prost-types = "0.7.0"
 serde = { version = "1.0.117", features = ["derive"] }
 serde_json = { version = "1.0.64", features = ["raw_value"] }
 structopt = "0.3.21"
@@ -27,20 +17,15 @@ toml = "0.5.8"
 typetag = "0.1.6"
 tracing = "0.1.25"
 http = "0.2"
-rustls = { version = "0.19", features = ["dangerous_configuration"] }
-webpki = "0.21"
 metrics = { version = "0.14", default-features = false }
 tokio-stream = { version = "0.1.5", default-features = false, features = ["net", "sync"] }
 hyper = { version = "0.14", default-features = false, features = ["stream"] }
 hyper-openssl = { version = "0.9.1", default-features = false, features = ["tcp"] }
 regex = "1"
 
-[dev-dependencies]
-tempfile = "3.2.0"
-
 [dependencies.vector]
-git = "https://github.com/YoEight/vector.git"
-rev = "f375c0d05f6cfbce806406e3df3a6eb7aedd40cd"
+git = "https://github.com/timberio/vector.git"
+rev = "01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
 default-features = false
 features = [ "sources", "sinks", "transforms", "unix" ]
 
