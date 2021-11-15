@@ -7,7 +7,7 @@ use std::time::Duration;
 use tokio_stream::wrappers::IntervalStream;
 use vector::{
     config::{self, SourceConfig, SourceContext, SourceDescription},
-    Event,
+    event::Event,
 };
 
 #[derive(Deserialize, Serialize, Clone, Debug, Default)]
