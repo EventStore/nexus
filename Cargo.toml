@@ -39,8 +39,8 @@ regex = "1"
 tempfile = "3.2.0"
 
 [dependencies.vector]
-git = "https://github.com/YoEight/vector.git"
-rev = "f375c0d05f6cfbce806406e3df3a6eb7aedd40cd"
+git = "https://github.com/timberio/vector.git"
+rev = "01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
 default-features = false
 features = [ "sources", "sinks", "transforms", "unix" ]
 
