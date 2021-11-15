@@ -29,7 +29,7 @@ regex = "1.5.4"
 
 [dependencies.vector]
 git = "https://github.com/vectordotdev/vector.git"
-rev = "739e8788b5c0a89c9e94e26f591486ee5a67cae6"
+rev = "d72c6e75891bc972111c7681fc5d0da44b9a8502"
 default-features = false
 features = [ "sources", "sinks", "transforms", "unix" ]
 
