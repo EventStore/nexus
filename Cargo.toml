@@ -16,9 +16,12 @@ structopt = "0.3.21"
 tokio = { version = "1.4.0", features = ["full"] }
 toml = "0.5.8"
 typetag = "0.1.6"
-tracing = "0.1.25"
+tracing = "*"
+# If these features aren't specified, there are currently errors compiling Vector
+tracing-log = { version = "*", features = ["log-tracer"] }
+tracing-subscriber = { version = "0.2.20", default-features = false, features = ["ansi", "env-filter", "fmt", "json"] }
 http = "0.2"
-metrics = { version = "0.16.0", default-features = false }
+metrics = { version = "0.17.0", default-features = false, features = ["std"] }
 tokio-stream = { version = "0.1.5", default-features = false, features = ["net", "sync"] }
 hyper = { version = "0.14.10", default-features = false, features = ["stream"] }
 hyper-openssl = { version = "0.9.1", default-features = false, features = ["tcp"]}
@@ -26,7 +29,7 @@ regex = "1.5.4"
 
 [dependencies.vector]
 git = "https://github.com/vectordotdev/vector.git"
-rev = "a216c34f5495731cd6d364c020e208365067c467"
+rev = "739e8788b5c0a89c9e94e26f591486ee5a67cae6"
 default-features = false
 features = [ "sources", "sinks", "transforms", "unix" ]
 
