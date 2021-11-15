@@ -5,7 +5,7 @@ authors = ["Yorick Laupa <yorick.laupa@eventstore.com>"]
 edition = "2018"
 
 [dependencies]
-async-trait = "0.1.48"
+async-trait = "0.1.51"
 chrono = { version = "0.4.19", features = ["serde"] }
 futures = "0.3.13"
 inventory = "0.1.10"
@@ -25,7 +25,7 @@ regex = "1"
 
 [dependencies.vector]
 git = "https://github.com/timberio/vector.git"
-rev = "01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+rev = "f0749f61d35add788f0e7aca43308bd6ac4a72c2"
 default-features = false
 features = [ "sources", "sinks", "transforms", "unix" ]
 
