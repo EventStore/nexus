@@ -10,6 +10,7 @@ use vector::internal_events::InternalEvent;
 pub struct Stats {
     pub proc: Proc,
     pub sys: Sys,
+    pub es: Es,
 }
 
 impl Stats {
@@ -99,6 +100,37 @@ impl Stats {
             .with_timestamp(Some(now)),
         );
 
+        for queue in self.es.queues.iter() {
+            let mut queue_tags = tags.clone();
+
+            queue_tags.insert("name".to_string(), queue.name.clone());
+            result.push(
+                Metric::new(
+                    "queue_length",
+                    MetricKind::Absolute,
+                    MetricValue::Gauge {
+                        value: queue.length as f64,
+                    },
+                )
+                .with_namespace(Some(namespace.clone()))
+                .with_tags(Some(queue_tags.clone()))
+                .with_timestamp(Some(now)),
+            );
+
+            result.push(
+                Metric::new(
+                    "queue_avg_processing_time",
+                    MetricKind::Absolute,
+                    MetricValue::Gauge {
+                        value: queue.avg_processing_time,
+                    },
+                )
+                .with_namespace(Some(namespace.clone()))
+                .with_tags(Some(queue_tags.clone()))
+                .with_timestamp(Some(now)),
+            );
+        }
+
         if let Some(drive) = self.sys.drive.as_ref() {
             tags.insert("path".to_string(), drive.path.clone());
 
@@ -183,6 +215,55 @@ pub struct LoadAvg {
     pub five_m: f64,
     #[serde(rename = "15m")]
     pub fifteen_m: f64,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Es {
+    #[serde(rename = "queue", deserialize_with = "deserialize_queues")]
+    pub queues: Vec<Queue>,
+}
+
+fn deserialize_queues<'de, D>(
+    deserializer: D,
+) -> Result<Vec<Queue>, <D as Deserializer<'de>>::Error>
+where
+    D: Deserializer<'de>,
+{
+    deserializer.deserialize_map(QueuesVisitor)
+}
+
+struct QueuesVisitor;
+
+impl<'de> Visitor<'de> for QueuesVisitor {
+    type Value = Vec<Queue>;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "Queues object")
+    }
+
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, <A as MapAccess<'de>>::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let mut queues: Vec<Queue> = Vec::new();
+        while let Some(_) = map.next_key::<String>()? {
+            queues.push(map.next_value()?);
+        }
+
+        Ok(queues)
+    }
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Queue {
+    #[serde(rename = "queueName")]
+    pub name: String,
+
+    pub length: usize,
+
+    pub avg_processing_time: f64,
 }
 
 #[derive(Debug)]
