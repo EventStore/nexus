@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Yorick Laupa <yorick.laupa@eventstore.com>"]
 edition = "2018"
 
+
 [dependencies]
 async-trait = "0.1.51"
 chrono = { version = "0.4.19", features = ["serde"] }
@@ -17,15 +18,15 @@ toml = "0.5.8"
 typetag = "0.1.6"
 tracing = "0.1.25"
 http = "0.2"
-metrics = { version = "0.14", default-features = false }
+metrics = { version = "0.16.0", default-features = false }
 tokio-stream = { version = "0.1.5", default-features = false, features = ["net", "sync"] }
 hyper = { version = "0.14", default-features = false, features = ["stream"] }
 hyper-openssl = { version = "0.9.1", default-features = false, features = ["tcp"] }
-regex = "1"
+regex = "1.5.4"
 
 [dependencies.vector]
-git = "https://github.com/timberio/vector.git"
-rev = "f0749f61d35add788f0e7aca43308bd6ac4a72c2"
+git = "https://github.com/vectordotdev/vector.git"
+rev = "5f3a31992a2b781b643c77a356d1ea713149fd1f"
 default-features = false
 features = [ "sources", "sinks", "transforms", "unix" ]
 
