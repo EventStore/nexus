@@ -221,9 +221,9 @@ checksum = "e91831deabf0d6d7ec49552e489aed63b7456a7a3c46cff62adad428110b0af0"
 
 [[package]]
 name = "async-trait"
-version = "0.1.49"
+version = "0.1.51"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "589652ce7ccb335d1e7ecb3be145425702b290dbcb7029bbeaae263fc1d87b48"
+checksum = "44318e776df68115a881de9a8fd1b9e53368d7a4a5ce4cc48517da3393233a5e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -259,9 +259,9 @@ dependencies = [
 
 [[package]]
 name = "attohttpc"
-version = "0.16.3"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdb8867f378f33f78a811a8eb9bf108ad99430d7aad43315dd9319c827ef6247"
+checksum = "9a8bda305457262b339322106c776e3fd21df860018e566eb6a5b1aa4b6ae02d"
 dependencies = [
  "flate2",
  "http",
@@ -471,7 +471,7 @@ dependencies = [
  "hyper-rustls",
  "hyper-unix-connector",
  "log",
- "pin-project 1.0.6",
+ "pin-project 1.0.8",
  "rustls 0.19.0",
  "rustls-native-certs",
  "serde",
@@ -680,7 +680,7 @@ dependencies = [
 [[package]]
 name = "codec"
 version = "0.1.0"
-source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=f0749f61d35add788f0e7aca43308bd6ac4a72c2#f0749f61d35add788f0e7aca43308bd6ac4a72c2"
 dependencies = [
  "bytes 1.0.1",
  "tokio-util",
@@ -1022,7 +1022,7 @@ dependencies = [
 [[package]]
 name = "derive_is_enum_variant"
 version = "1.0.0"
-source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=f0749f61d35add788f0e7aca43308bd6ac4a72c2#f0749f61d35add788f0e7aca43308bd6ac4a72c2"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -1234,7 +1234,7 @@ checksum = "e88a8acf291dafb59c2d96e8f59828f3838bb1a70398823ade51a84de6a6deed"
 [[package]]
 name = "fakedata"
 version = "0.1.0"
-source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=f0749f61d35add788f0e7aca43308bd6ac4a72c2#f0749f61d35add788f0e7aca43308bd6ac4a72c2"
 dependencies = [
  "chrono",
  "fakedata_generator",
@@ -1270,7 +1270,7 @@ dependencies = [
 [[package]]
 name = "file-source"
 version = "0.1.0"
-source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=f0749f61d35add788f0e7aca43308bd6ac4a72c2#f0749f61d35add788f0e7aca43308bd6ac4a72c2"
 dependencies = [
  "bstr",
  "bytes 1.0.1",
@@ -1615,9 +1615,9 @@ checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
 
 [[package]]
 name = "goauth"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d94101e84ede813c04773b0a43396c01b5a3a9376537dbce1125858ae090ae60"
+checksum = "4a1d5b4e896797c19dff490f9706817b42e9b7aa4adfe844464d3bbc9aabb035"
 dependencies = [
  "arc-swap",
  "futures 0.3.14",
@@ -1634,11 +1634,11 @@ dependencies = [
 
 [[package]]
 name = "gouth"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f60d0f7f508e9354fb3d9f734655e47ac525177e60dbdcb120ed482f58f385c"
+checksum = "c138d157085ba4eb1aaa86e622dc348b956d5ac9d2e446b65941467ebffefdd6"
 dependencies = [
- "attohttpc 0.16.3",
+ "attohttpc 0.17.0",
  "gcemeta",
  "jsonwebtoken",
  "serde",
@@ -1937,7 +1937,7 @@ dependencies = [
  "httparse",
  "httpdate",
  "itoa",
- "pin-project 1.0.6",
+ "pin-project 1.0.8",
  "socket2 0.4.0",
  "tokio",
  "tower-service",
@@ -2002,7 +2002,7 @@ dependencies = [
  "anyhow",
  "hex",
  "hyper",
- "pin-project 1.0.6",
+ "pin-project 1.0.8",
  "tokio",
 ]
 
@@ -2800,6 +2800,7 @@ dependencies = [
  "structopt",
  "tokio",
  "tokio-stream",
+ "toml",
  "tracing 0.1.25",
  "typetag",
  "vector",
@@ -2858,9 +2859,9 @@ dependencies = [
 
 [[package]]
 name = "notify"
-version = "4.0.15"
+version = "4.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80ae4a7688d1fab81c5bf19c64fc8db920be8d519ce6336ed4e7efe024724dbd"
+checksum = "ae03c8c853dba7bfd23e571ff0cff7bc9dceb40a4cd684cd1681824183f45257"
 dependencies = [
  "bitflags",
  "filetime",
@@ -3230,11 +3231,11 @@ dependencies = [
 
 [[package]]
 name = "pin-project"
-version = "1.0.6"
+version = "1.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc174859768806e91ae575187ada95c91a29e96a98dc5d2cd9a1fed039501ba6"
+checksum = "576bc800220cc65dac09e99e97b08b358cfab6e17078de8dc5fee223bd2d0c08"
 dependencies = [
- "pin-project-internal 1.0.6",
+ "pin-project-internal 1.0.8",
 ]
 
 [[package]]
@@ -3250,9 +3251,9 @@ dependencies = [
 
 [[package]]
 name = "pin-project-internal"
-version = "1.0.6"
+version = "1.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a490329918e856ed1b083f244e3bfe2d8c4f336407e4ea9e1a9f479ff09049e5"
+checksum = "6e8fe8163d14ce7f0cdac2e040116f22eac817edabff0be91e8aff7e9accf389"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3299,7 +3300,7 @@ dependencies = [
 [[package]]
 name = "portpicker"
 version = "1.0.0"
-source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=f0749f61d35add788f0e7aca43308bd6ac4a72c2#f0749f61d35add788f0e7aca43308bd6ac4a72c2"
 dependencies = [
  "rand 0.8.3",
 ]
@@ -3416,7 +3417,7 @@ dependencies = [
 [[package]]
 name = "prometheus-parser"
 version = "0.1.0"
-source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=f0749f61d35add788f0e7aca43308bd6ac4a72c2#f0749f61d35add788f0e7aca43308bd6ac4a72c2"
 dependencies = [
  "indexmap",
  "nom",
@@ -4369,7 +4370,7 @@ dependencies = [
 [[package]]
 name = "shared"
 version = "0.1.0"
-source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=f0749f61d35add788f0e7aca43308bd6ac4a72c2#f0749f61d35add788f0e7aca43308bd6ac4a72c2"
 dependencies = [
  "bytes 1.0.1",
  "chrono",
@@ -4627,7 +4628,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f36848ff9e3e8af125e00ab244aca7af0a8b270d4c6afcc9ccb4e523f7972c4c"
 dependencies = [
  "futures-core",
- "pin-project 1.0.6",
+ "pin-project 1.0.8",
  "tokio",
 ]
 
@@ -4993,7 +4994,7 @@ checksum = "ac1bec5c0a4aa71e3459802c7a12e8912c2091ce2151004f9ce95cc5d1c6124e"
 dependencies = [
  "futures 0.3.14",
  "openssl",
- "pin-project 1.0.6",
+ "pin-project 1.0.8",
  "tokio",
 ]
 
@@ -5075,7 +5076,7 @@ checksum = "bf0aa6dfc29148c3826708dabbfa83c121eeb84df4d1468220825e3a33651687"
 dependencies = [
  "futures-core",
  "futures-util",
- "pin-project 1.0.6",
+ "pin-project 1.0.8",
  "tokio",
  "tokio-util",
  "tower-layer",
@@ -5165,7 +5166,7 @@ dependencies = [
  "futures 0.1.31",
  "futures 0.3.14",
  "futures-task",
- "pin-project 1.0.6",
+ "pin-project 1.0.8",
  "tracing 0.1.25",
 ]
 
@@ -5181,7 +5182,7 @@ dependencies = [
 [[package]]
 name = "tracing-limit"
 version = "0.1.0"
-source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=f0749f61d35add788f0e7aca43308bd6ac4a72c2#f0749f61d35add788f0e7aca43308bd6ac4a72c2"
 dependencies = [
  "ansi_term 0.12.1",
  "dashmap",
@@ -5487,8 +5488,8 @@ checksum = "f1bddf1187be692e79c5ffeab891132dfb0f236ed36a43c7ed39f1165ee20191"
 
 [[package]]
 name = "vector"
-version = "0.13.0"
-source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+version = "0.13.1"
+source = "git+https://github.com/timberio/vector.git?rev=f0749f61d35add788f0e7aca43308bd6ac4a72c2#f0749f61d35add788f0e7aca43308bd6ac4a72c2"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -5557,7 +5558,7 @@ dependencies = [
  "percent-encoding",
  "pest",
  "pest_derive",
- "pin-project 1.0.6",
+ "pin-project 1.0.8",
  "portpicker",
  "postgres-openssl",
  "prometheus-parser",
@@ -5620,6 +5621,7 @@ dependencies = [
  "vrl-stdlib",
  "warp",
  "windows-service",
+ "zstd",
 ]
 
 [[package]]
@@ -5631,7 +5633,7 @@ checksum = "5fecdca9a5291cc2b8dcf7dc02453fee791a280f3743cb0905f8822ae463b3fe"
 [[package]]
 name = "vrl"
 version = "0.1.0"
-source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=f0749f61d35add788f0e7aca43308bd6ac4a72c2#f0749f61d35add788f0e7aca43308bd6ac4a72c2"
 dependencies = [
  "bytes 1.0.1",
  "indoc",
@@ -5645,7 +5647,7 @@ dependencies = [
 [[package]]
 name = "vrl-compiler"
 version = "0.1.0"
-source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=f0749f61d35add788f0e7aca43308bd6ac4a72c2#f0749f61d35add788f0e7aca43308bd6ac4a72c2"
 dependencies = [
  "bitflags",
  "bytes 1.0.1",
@@ -5665,7 +5667,7 @@ dependencies = [
 [[package]]
 name = "vrl-diagnostic"
 version = "0.1.0"
-source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=f0749f61d35add788f0e7aca43308bd6ac4a72c2#f0749f61d35add788f0e7aca43308bd6ac4a72c2"
 dependencies = [
  "codespan-reporting",
  "termcolor",
@@ -5674,7 +5676,7 @@ dependencies = [
 [[package]]
 name = "vrl-parser"
 version = "0.1.0"
-source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=f0749f61d35add788f0e7aca43308bd6ac4a72c2#f0749f61d35add788f0e7aca43308bd6ac4a72c2"
 dependencies = [
  "lalrpop",
  "lalrpop-util",
@@ -5687,7 +5689,7 @@ dependencies = [
 [[package]]
 name = "vrl-stdlib"
 version = "0.1.0"
-source = "git+https://github.com/timberio/vector.git?rev=01ea5d1db9e35aa951059cbcac8d172f5d67acd3#01ea5d1db9e35aa951059cbcac8d172f5d67acd3"
+source = "git+https://github.com/timberio/vector.git?rev=f0749f61d35add788f0e7aca43308bd6ac4a72c2#f0749f61d35add788f0e7aca43308bd6ac4a72c2"
 dependencies = [
  "base64 0.13.0",
  "bytes 1.0.1",
@@ -5766,7 +5768,7 @@ dependencies = [
  "mime",
  "mime_guess",
  "percent-encoding",
- "pin-project 1.0.6",
+ "pin-project 1.0.8",
  "scoped-tls",
  "serde",
  "serde_json",
