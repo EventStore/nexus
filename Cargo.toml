@@ -29,11 +29,18 @@ toml = "0.5.8"
 tracing = "0.1.25"
 typetag = "0.1.6"
 
+[dependencies.stackdriver-metrics]
+git = "https://github.com/TimSimpson/stackdriver-metrics-rs.git"
+rev = "3c31fb868b66112d02b9e37d0235662fe92d7bc9"
+
 [dependencies.vector]
 default-features = false
 features         = ["sources", "sinks", "transforms", "unix"]
 git              = "https://github.com/vectordotdev/vector.git"
 rev              = "5f3a31992a2b781b643c77a356d1ea713149fd1f"
+
+[build-dependencies]
+built = { version = "0.5", features = ["git2", "chrono"] }
 
 [lib]
 name = "nexus"
