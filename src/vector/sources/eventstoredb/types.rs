@@ -247,7 +247,7 @@ impl<'de> Visitor<'de> for QueuesVisitor {
         A: MapAccess<'de>,
     {
         let mut queues: Vec<Queue> = Vec::new();
-        while let Some(_) = map.next_key::<String>()? {
+        while map.next_key::<String>()?.is_some() {
             queues.push(map.next_value()?);
         }
 

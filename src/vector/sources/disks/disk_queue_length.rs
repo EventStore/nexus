@@ -76,7 +76,7 @@ pub struct DiskQueueLengthResult {
 
 pub async fn get_disk_queue_length(
     file_path: impl AsRef<std::path::Path>,
-    disk_regexes: &Vec<regex::Regex>,
+    disk_regexes: &[regex::Regex],
 ) -> Vec<DiskQueueLengthResult> {
     let mut results = Vec::new();
 
@@ -113,7 +113,7 @@ pub async fn get_disk_queue_length(
             }
         },
     };
-    return results;
+    results
 }
 
 #[async_trait::async_trait]
@@ -145,7 +145,7 @@ impl SourceConfig for DiskQueueLengthConfig {
             async move {
                 while ticks.next().await.is_some() {
                     let results = get_disk_queue_length("/proc/diskstats", &disk_regexes).await;
-                    if results.len() < 1 {
+                    if results.is_empty() {
                         vector::emit!(DiskNotFound);
                     } else {
                         let timestamp = chrono::Utc::now();
