@@ -1,34 +1,39 @@
 [package]
-name = "nexus"
-version = "0.1.0"
 authors = ["Yorick Laupa <yorick.laupa@eventstore.com>"]
 edition = "2018"
+name    = "nexus"
+version = "0.1.0"
 
 
 [dependencies]
 async-trait = "0.1.51"
 chrono = { version = "0.4.19", features = ["serde"] }
 futures = "0.3.13"
+http = "0.2"
+hyper = { version = "0.14", default-features = false, features = ["stream"] }
+hyper-openssl = { version = "0.9.1", default-features = false, features = [
+  "tcp",
+] }
 inventory = "0.1.10"
+metrics = { version = "0.16.0", default-features = false }
+regex = "1.5.4"
 serde = { version = "1.0.117", features = ["derive"] }
 serde_json = { version = "1.0.64", features = ["raw_value"] }
 structopt = "0.3.21"
 tokio = { version = "1.4.0", features = ["full"] }
+tokio-stream = { version = "0.1.5", default-features = false, features = [
+  "net",
+  "sync",
+] }
 toml = "0.5.8"
-typetag = "0.1.6"
 tracing = "0.1.25"
-http = "0.2"
-metrics = { version = "0.16.0", default-features = false }
-tokio-stream = { version = "0.1.5", default-features = false, features = ["net", "sync"] }
-hyper = { version = "0.14", default-features = false, features = ["stream"] }
-hyper-openssl = { version = "0.9.1", default-features = false, features = ["tcp"] }
-regex = "1.5.4"
+typetag = "0.1.6"
 
 [dependencies.vector]
-git = "https://github.com/vectordotdev/vector.git"
-rev = "5f3a31992a2b781b643c77a356d1ea713149fd1f"
 default-features = false
-features = [ "sources", "sinks", "transforms", "unix" ]
+features         = ["sources", "sinks", "transforms", "unix"]
+git              = "https://github.com/vectordotdev/vector.git"
+rev              = "5f3a31992a2b781b643c77a356d1ea713149fd1f"
 
 [lib]
 name = "nexus"
