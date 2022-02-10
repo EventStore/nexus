@@ -16,6 +16,7 @@ hyper-openssl = { version = "0.9.1", default-features = false, features = [
 ] }
 inventory = "0.1.10"
 metrics = { version = "0.16.0", default-features = false }
+num_cpus = "1.13.0"
 regex = "1.5.4"
 serde = { version = "1.0.117", features = ["derive"] }
 serde_json = { version = "1.0.64", features = ["raw_value"] }
@@ -39,17 +40,8 @@ features         = ["sources", "sinks", "transforms", "unix"]
 git              = "https://github.com/vectordotdev/vector.git"
 rev              = "5f3a31992a2b781b643c77a356d1ea713149fd1f"
 
+[dev-dependencies]
+tempfile = "3.3.0"
+
 [build-dependencies]
 built = { version = "0.5", features = ["git2", "chrono"] }
-
-[lib]
-name = "nexus"
-path = "src/lib.rs"
-
-[[bin]]
-name = "nexus"
-path = "src/cli/nexus.rs"
-
-[[bin]]
-name = "show-disk-queue-length"
-path = "src/cli/show-disk-queue-length.rs"
