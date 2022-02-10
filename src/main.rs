@@ -3,7 +3,6 @@ extern crate tracing;
 
 pub mod build_info;
 pub mod cli;
-pub(crate) mod http;
 pub mod vector;
 
 pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
@@ -30,7 +29,6 @@ fn show_plugins(_: String, _: Vec<String>) {
 }
 
 fn run_internal_nexus() {
-    let _http_handle = crate::cli::http::start_http_server();
     crate::vector::app::run();
 }
 
