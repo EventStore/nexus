@@ -30,7 +30,9 @@ jobs:
           cargo install taplo-cli
 
       - name: Build
-        run: just build
+        run: |
+          just check
+          just build
 
       - name: Test
         run: just test
