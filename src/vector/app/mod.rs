@@ -73,7 +73,6 @@ pub fn show_plugins() {
 mod tests {
     use vector::config::SinkDescription;
     use vector::config::SourceDescription;
-    use vector::config::TransformDescription;
 
     #[test]
     fn ensure_plugins_are_present() {
@@ -83,12 +82,11 @@ mod tests {
         let sources: Vec<String> = inventory::iter::<SourceDescription>()
             .map(|t| t.type_str.to_string())
             .collect();
-        let transforms: Vec<String> = inventory::iter::<TransformDescription>()
-            .map(|t| t.type_str.to_string())
-            .collect();
 
         assert!(sources.iter().any(|s| s == "disk_queue_length"));
         assert!(sources.iter().any(|s| s == "eventstoredb_metrics"));
         assert!(!sources.iter().any(|s| s == "this_does_not_exist"));
+
+        assert!(sinks.iter().any(|s| s == "grpc_stackdriver_metrics"));
     }
 }
