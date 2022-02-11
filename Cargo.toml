@@ -1,12 +1,17 @@
 [package]
 authors = [
   "Yorick Laupa <yorick.laupa@eventstore.com>",
-  "Tim Simpson <tim.simpson@eventstore.com>"
+  "Tim Simpson <tim.simpson@eventstore.com>",
 ]
 edition = "2018"
 name = "nexus"
 version = "0.1.0"
 
+[profile.release]
+codegen-units = 1
+lto           = true
+opt-level     = 'z'
+panic         = 'abort'
 
 [dependencies]
 async-trait = "0.1.51"
