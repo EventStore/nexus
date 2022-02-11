@@ -11,7 +11,6 @@ check:
 clean:
     rm -rf target
 
-
 # builds nexus
 build:
 	cargo build --locked
@@ -29,3 +28,11 @@ fmt:
 # runs tests
 test:
     cargo test --locked
+
+# runs the same checks performed by the CI job
+ci:
+    just fmt
+    git diff --exit-code
+    just check
+    just build
+    just test

@@ -29,10 +29,6 @@ jobs:
           cargo install just
           cargo install taplo-cli
 
-      - name: Build
+      - name: Build and Test
         run: |
-          just check
-          just build
-
-      - name: Test
-        run: just test
+          just ci
