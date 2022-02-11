@@ -29,9 +29,6 @@ jobs:
           cargo install just
           cargo install taplo-cli
 
-      - name: show target dir
-        run: ls -la ./target/debug/deps || echo 'nothing there'
-        
       - name: Build
         run: just build
 
