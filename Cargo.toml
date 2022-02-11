@@ -1,7 +1,10 @@
 [package]
-authors = ["Yorick Laupa <yorick.laupa@eventstore.com>"]
+authors = [
+  "Yorick Laupa <yorick.laupa@eventstore.com>",
+  "Tim Simpson <tim.simpson@eventstore.com>"
+]
 edition = "2018"
-name    = "nexus"
+name = "nexus"
 version = "0.1.0"
 
 
