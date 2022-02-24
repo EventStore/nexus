@@ -1,0 +1,50 @@
+name: Publish
+
+on:
+  workflow_dispatch
+
+jobs:
+  package:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Bump version and push tag
+        id: create_tag
+        uses: anothrNick/github-tag-action@1.36.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WITH_V: false
+          INITIAL_VERSION: 0.1.1
+          DEFAULT_BUMP: patch
+
+      - name: Build
+        env:
+          TAG: ${{ steps.create_tag.outputs.new_tag }}
+        run: |
+          cargo build --locked --release
+          tar czf nexus-${TAG}-linux-x86_64.tgz target/release/nexus
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.create_tag.outputs.new_tag }}
+          release_name: Release ${{ steps.create_tag.outputs.new_tag }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Linux Build
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEXUS_TAG: ${{ steps.create_tag.outputs.new_tag }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: nexus-${{ steps.create_tag.outputs.new_tag }}-linux-x86_64.tgz
+          asset_name: nexus-${{ steps.create_tag.outputs.new_tag }}-linux-x86_64.tgz
+          asset_content_type: application/zip

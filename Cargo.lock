@@ -681,6 +681,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39092a32794787acd8525ee150305ff051b0aa6cc2abaf193924f5ab05425f39"
 
 [[package]]
+name = "built"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f346b6890a0dfa7266974910e7df2d5088120dd54721b9b0e5aae1ae5e05715"
+dependencies = [
+ "cargo-lock",
+ "chrono",
+ "git2",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -734,6 +745,18 @@ name = "cache-padded"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "631ae5198c9be5e753e5cc215e1bd73c2b466a3565173db433f52bb9d3e66dba"
+
+[[package]]
+name = "cargo-lock"
+version = "7.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7fb04b88bd5b2036e30704f95c6ee16f3b5ca3b4ca307da2889d9006648e5c88"
+dependencies = [
+ "semver 1.0.4",
+ "serde",
+ "toml",
+ "url",
+]
 
 [[package]]
 name = "cc"
@@ -1492,9 +1515,9 @@ checksum = "4443176a9f2c162692bd3d352d745ef9413eec5782a80d8fd6f8a1ac692a07f7"
 
 [[package]]
 name = "fastrand"
-version = "1.4.0"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca5faf057445ce5c9d4329e382b2ce7ca38550ef3b73a5348362d5f24e0c7fe3"
+checksum = "c3fcf0cee53519c866c09b5de1f6c56ff9d647101f81c1964fa632e148896cdf"
 dependencies = [
  "instant",
 ]
@@ -1530,7 +1553,7 @@ checksum = "1d34cfa13a63ae058bfa601fe9e313bbdb3746427c1459185464ce0fcf62e1e8"
 dependencies = [
  "cfg-if 1.0.0",
  "libc",
- "redox_syscall 0.2.6",
+ "redox_syscall 0.2.10",
  "winapi 0.3.9",
 ]
 
@@ -1820,6 +1843,19 @@ dependencies = [
  "proc-macro2 1.0.26",
  "quote 1.0.9",
  "syn 1.0.69",
+]
+
+[[package]]
+name = "git2"
+version = "0.13.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f29229cc1b24c0e6062f6e742aa3e256492a5323365e5ed3413599f8a5eff7d6"
+dependencies = [
+ "bitflags",
+ "libc",
+ "libgit2-sys",
+ "log",
+ "url",
 ]
 
 [[package]]
@@ -2555,6 +2591,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3286f09f7d4926fc486334f28d8d2e6ebe4f7f9994494b6dab27ddfad2c9b11b"
 
 [[package]]
+name = "libgit2-sys"
+version = "0.12.26+1.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "19e1c899248e606fbfe68dcb31d8b0176ebab833b103824af31bddf4b7457494"
+dependencies = [
+ "cc",
+ "libc",
+ "libz-sys",
+ "pkg-config",
+]
+
+[[package]]
 name = "libloading"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3064,6 +3112,7 @@ name = "nexus"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "built",
  "chrono",
  "futures 0.3.17",
  "http",
@@ -3071,10 +3120,13 @@ dependencies = [
  "hyper-openssl",
  "inventory",
  "metrics",
+ "num_cpus",
  "regex",
  "serde",
  "serde_json",
+ "stackdriver-metrics",
  "structopt",
+ "tempfile",
  "tokio",
  "tokio-stream",
  "toml",
@@ -3395,7 +3447,7 @@ dependencies = [
  "cfg-if 1.0.0",
  "instant",
  "libc",
- "redox_syscall 0.2.6",
+ "redox_syscall 0.2.10",
  "smallvec",
  "winapi 0.3.9",
 ]
@@ -4034,9 +4086,9 @@ checksum = "41cc0f7e4d5d4544e8861606a285bb08d3e70712ccc7d2b84d7c0ccfaf4b05ce"
 
 [[package]]
 name = "redox_syscall"
-version = "0.2.6"
+version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8270314b5ccceb518e7e578952f0b72b88222d02e8f77f5ecf7abbb673539041"
+checksum = "8383f39639269cde97d255a32bdb68c047337295414940c68bdd30c2e13203ff"
 dependencies = [
  "bitflags",
 ]
@@ -4059,7 +4111,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "528532f3d801c87aec9def2add9ca802fe569e44a544afe633765267840abe64"
 dependencies = [
  "getrandom 0.2.2",
- "redox_syscall 0.2.6",
+ "redox_syscall 0.2.10",
 ]
 
 [[package]]
@@ -4933,6 +4985,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13287b4da9d1207a4f4929ac390916d64eacfe236a487e9a9f5b3be392be5162"
 
 [[package]]
+name = "stackdriver-metrics"
+version = "0.1.0"
+source = "git+https://github.com/TimSimpson/stackdriver-metrics-rs.git?rev=3c31fb868b66112d02b9e37d0235662fe92d7bc9#3c31fb868b66112d02b9e37d0235662fe92d7bc9"
+dependencies = [
+ "chrono",
+ "gouth",
+ "prost",
+ "prost-derive",
+ "prost-types",
+ "thiserror",
+ "tonic",
+ "tonic-build",
+]
+
+[[package]]
 name = "standback"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5195,14 +5262,14 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 
 [[package]]
 name = "tempfile"
-version = "3.2.0"
+version = "3.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dac1c663cfc93810f88aed9b8941d48cabf856a1b111c29a40439018d870eb22"
+checksum = "5cdb1ef4eaeeaddc8fbd371e5017057064af0911902ef36b39801f67cc6d79e4"
 dependencies = [
  "cfg-if 1.0.0",
+ "fastrand",
  "libc",
- "rand 0.8.3",
- "redox_syscall 0.2.6",
+ "redox_syscall 0.2.10",
  "remove_dir_all",
  "winapi 0.3.9",
 ]
@@ -5492,6 +5559,7 @@ dependencies = [
  "pin-project 1.0.8",
  "prost",
  "prost-derive",
+ "rustls-native-certs",
  "tokio",
  "tokio-rustls",
  "tokio-stream",
