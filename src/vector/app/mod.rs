@@ -1,4 +1,3 @@
-use crate::vector::sources::eventstoredb::metrics::EventStoreDbConfig;
 use vector::app::Application;
 use vector::config::SinkDescription;
 use vector::config::SourceDescription;
