@@ -56,7 +56,6 @@ features = [
   "sources-internal_logs",
   "sources-socket",
   "sources-vector",
-  "sources-eventstoredb_metrics",
   "sources-host_metrics",
   "sources-internal_metrics",
 

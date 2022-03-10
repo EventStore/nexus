@@ -28,13 +28,13 @@ pub fn default_endpoint() -> String {
 }
 
 inventory::submit! {
-    SourceDescription::new::<EventStoreDbConfig>("eventstoredb_metrics")
+    SourceDescription::new::<EventStoreDbConfig>("eventstoredb_nexus_metrics")
 }
 
 vector::impl_generate_config_from_default!(EventStoreDbConfig);
 
 #[async_trait::async_trait]
-#[typetag::serde(name = "eventstoredb_metrics")]
+#[typetag::serde(name = "eventstoredb_nexus_metrics")]
 impl SourceConfig for EventStoreDbConfig {
     async fn build(&self, cx: SourceContext) -> crate::Result<vector::sources::Source> {
         eventstoredb(
