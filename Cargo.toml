@@ -18,7 +18,7 @@ async-trait = "0.1.51"
 chrono = { version = "0.4.19", features = ["serde"] }
 futures = "0.3.13"
 http = "0.2"
-hyper = { version = "0.14", default-features = false, features = ["stream"] }
+hyper = { version = "0.14.10", default-features = false, features = ["stream"] }
 hyper-openssl = { version = "0.9.1", default-features = false, features = [
   "tcp",
 ] }
@@ -44,9 +44,34 @@ rev = "3c31fb868b66112d02b9e37d0235662fe92d7bc9"
 
 [dependencies.vector]
 default-features = false
-features         = ["sources", "sinks", "transforms", "unix"]
-git              = "https://github.com/vectordotdev/vector.git"
-rev              = "5f3a31992a2b781b643c77a356d1ea713149fd1f"
+features = [
+  "transforms",
+  "unix",
+
+  # sources
+  "sources-file",
+  "sources-fluent",
+  "sources-generator",
+  "sources-http",
+  "sources-internal_logs",
+  "sources-socket",
+  "sources-vector",
+  "sources-eventstoredb_metrics",
+  "sources-host_metrics",
+  "sources-internal_metrics",
+
+  # sinks
+  "sinks-aws_cloudwatch_logs",
+  "sinks-console",
+  "sinks-file",
+  "sinks-gcp",
+  "sinks-socket",
+  "sinks-vector",
+  "sinks-aws_cloudwatch_metrics",
+  "sinks-prometheus",
+]
+git = "https://github.com/vectordotdev/vector.git" # v0.15.2
+rev = "a216c34f5495731cd6d364c020e208365067c467"
 
 [dev-dependencies]
 tempfile = "3.3.0"

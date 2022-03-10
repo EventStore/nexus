@@ -90,25 +90,28 @@ impl StreamSink for MetricSink {
         while let Some(event) = input.next().await {
             let metric = event.into_metric();
             let namespace = metric
-                .series
+                .series()
                 .name
                 .namespace
-                .unwrap_or_else(|| self.namespace.clone());
+                .as_ref()
+                .unwrap_or(&self.namespace);
 
             let metric_type = format!(
                 "custom.googleapis.com/{}/metrics/{}",
-                namespace, metric.series.name.name
+                namespace,
+                metric.series().name.name
             );
             let metric_labels = metric
-                .series
+                .series()
                 .tags
+                .clone()
                 .unwrap_or_default()
                 .into_iter()
                 .collect::<std::collections::HashMap<_, _>>();
 
-            let end_time = metric.data.timestamp.unwrap_or_else(chrono::Utc::now);
+            let end_time = metric.data().timestamp.unwrap_or_else(chrono::Utc::now);
 
-            let (point_value, interval, metric_kind) = match &metric.data.value {
+            let (point_value, interval, metric_kind) = match &metric.data().value {
                 &MetricValue::Counter { value } => {
                     let interval = stackdriver_metrics::Interval {
                         start_time: Some(self.started),
