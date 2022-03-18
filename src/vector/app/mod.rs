@@ -1,12 +1,7 @@
-use crate::vector::sources::eventstoredb::metrics::EventStoreDbConfig;
 use vector::app::Application;
 use vector::config::SinkDescription;
 use vector::config::SourceDescription;
 use vector::config::TransformDescription;
-
-inventory::submit! {
-    SourceDescription::new::<EventStoreDbConfig>("eventstoredb_metrics")
-}
 
 // Vector's default tracing configuration won't pick up our log messages, so
 // we change it here so the filter we'll include our modules as "targets".
@@ -84,7 +79,7 @@ mod tests {
             .collect();
 
         assert!(sources.iter().any(|s| s == "disk_queue_length"));
-        assert!(sources.iter().any(|s| s == "eventstoredb_metrics"));
+        assert!(sources.iter().any(|s| s == "eventstoredb_nexus_metrics"));
         assert!(!sources.iter().any(|s| s == "this_does_not_exist"));
 
         assert!(sinks.iter().any(|s| s == "grpc_stackdriver_metrics"));
