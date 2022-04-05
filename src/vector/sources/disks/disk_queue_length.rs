@@ -4,47 +4,10 @@ use futures::{FutureExt, SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use tokio_stream::wrappers::IntervalStream;
-use vector::internal_events::InternalEvent;
 use vector::{
     config::{self, SourceConfig, SourceContext, SourceDescription},
     event::{Event, Metric, MetricKind, MetricValue},
 };
-
-struct ParsingError(Box<dyn std::error::Error + Send + 'static>);
-
-impl InternalEvent for ParsingError {
-    fn emit_logs(&self) {
-        error!(message = "Parsing error.", error = ?self.0);
-    }
-
-    fn emit_metrics(&self) {
-        metrics::counter!("parse_error_total", 1);
-    }
-}
-
-struct DiskNotFound;
-
-impl InternalEvent for DiskNotFound {
-    fn emit_logs(&self) {
-        error!("No disk matching the regex rules found");
-    }
-
-    fn emit_metrics(&self) {
-        metrics::counter!("disk_not_found", 1);
-    }
-}
-
-struct FileSystemError(std::io::Error);
-
-impl InternalEvent for FileSystemError {
-    fn emit_logs(&self) {
-        error!(message = "Filesystem error.", error = ?self.0);
-    }
-
-    fn emit_metrics(&self) {
-        metrics::counter!("filesystem_error", 1);
-    }
-}
 
 #[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct DiskQueueLengthConfig {
@@ -82,11 +45,11 @@ pub async fn get_disk_queue_length(
 
     match tokio::fs::read(file_path).await {
         Err(e) => {
-            vector::emit!(FileSystemError(e));
+            tracing::error!(target: "disk_queue_length", "Filesystem error: {}", e);
         }
         Ok(content) => match String::from_utf8(content) {
             Err(e) => {
-                vector::emit!(ParsingError(Box::new(e)));
+                tracing::error!(target: "disk_queue_length", "Parsing error: {}", e);
             }
             Ok(content) => {
                 for line in content.lines() {
@@ -97,7 +60,7 @@ pub async fn get_disk_queue_length(
                             if let Some(word) = words.nth(8) {
                                 match word.parse::<usize>() {
                                     Err(e) => {
-                                        vector::emit!(ParsingError(Box::new(e)));
+                                        tracing::error!(target: "disk_queue_length", "Parsing error: {}", e);
                                     }
                                     Ok(value) => {
                                         results.push(DiskQueueLengthResult {
@@ -146,7 +109,7 @@ impl SourceConfig for DiskQueueLengthConfig {
                 while ticks.next().await.is_some() {
                     let results = get_disk_queue_length("/proc/diskstats", &disk_regexes).await;
                     if results.is_empty() {
-                        vector::emit!(DiskNotFound);
+                        tracing::error!(target: "disk_queue_length", "Disk not found");
                     } else {
                         let timestamp = chrono::Utc::now();
                         for r in results {
@@ -200,7 +163,7 @@ mod tests {
                 diskstats: r#"
    1       0 loop0 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0
    1       1 loop1 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0
-   1       2 loop2 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0   
+   1       2 loop2 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0
    2       0 sda   1 0 4  8  9 0 13 14   2 1 2 0 0 0 0
    3       2 sda1  2 0 5 10 12 0 15  1   1 2 2 0 0 0 0
    4       3 sda2  3 0 6  7  0 0  0  0   0 1 2 0 0 0 0
@@ -230,7 +193,7 @@ mod tests {
                 diskstats: r#"
    1       0 loop0 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0
    1       1 loop1 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0
-   1       2 loop2 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0   
+   1       2 loop2 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0
    2       0 sda   1 0 4  8  9 0 13 14   2 1 2 0 0 0 0
    3       2 sda1  2 0 5 10 12 0 15  1   1 2 2 0 0 0 0
    4       3 sda2  3 0 6  7  0 0  0  0 4.5 1 2 0 0 0 0
@@ -251,11 +214,11 @@ mod tests {
                 diskstats: r#"
    1       0 loop0 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0
    1       1 loop1 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0
-   1       2 loop2 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0   
-   2       0 sda   1 0 4  8 
+   1       2 loop2 0 0 0  0  0 0  0  0   0 0 0 0 0 0 0
+   2       0 sda   1 0 4  8
    3       2 sda1  2 0 5 10 12 0 15  1   1 2 2 0 0 0 0
-   4  
-   5       3 sda2  
+   4
+   5       3 sda2
      "#,
                 expected_results: vec![DiskQueueLengthResult {
                     disk: "sda1".to_string(),

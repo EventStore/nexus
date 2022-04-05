@@ -1,6 +1,4 @@
-use crate::vector::sources::eventstoredb::types::{
-    EventStoreDbMetricsHttpError, EventStoreDbMetricsReceived, EventStoreDbStatsParsingError, Stats,
-};
+use crate::vector::sources::eventstoredb::types::Stats;
 use futures::{stream, FutureExt, SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -78,9 +76,7 @@ pub fn eventstoredb(
 
                 match client.request(req).await {
                     Err(error) => {
-                        vector::emit!(EventStoreDbMetricsHttpError {
-                            error: error.into(),
-                        });
+                        tracing::error!(target: "eventstoredb_metrics", "HTTP error: {}", error);
                         continue;
                     }
 
@@ -88,16 +84,14 @@ pub fn eventstoredb(
                         let bytes = match hyper::body::to_bytes(resp.into_body()).await {
                             Ok(b) => b,
                             Err(error) => {
-                                vector::emit!(EventStoreDbMetricsHttpError {
-                                    error: error.into(),
-                                });
+                                tracing::error!(target: "eventstoredb_metrics", "HTTP error: {}", error);
                                 continue;
                             }
                         };
 
                         match serde_json::from_slice::<Stats>(bytes.as_ref()) {
                             Err(error) => {
-                                vector::emit!(EventStoreDbStatsParsingError { error });
+                                tracing::error!(target: "eventstoredb_metrics", "Stats parsing error: {}", error);
                                 continue;
                             }
 
@@ -105,9 +99,7 @@ pub fn eventstoredb(
                                 let metrics = stats.metrics(namespace.clone());
                                 let mut metrics = stream::iter(metrics).map(Event::Metric).map(Ok);
 
-                                vector::emit!(EventStoreDbMetricsReceived {
-                                    byte_size: bytes.len(),
-                                });
+                                tracing::info!(target: "eventstoredb_metrics", "Metrics received: {} bytes", bytes.len());
 
                                 if out.send_all(&mut metrics).await.is_err() {
                                     break;
