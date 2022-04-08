@@ -81,7 +81,7 @@ const MAX_GCP_SERIES_BATCH_SIZE: usize = 200;
 
 #[async_trait::async_trait]
 impl StreamSink for MetricSink {
-    async fn run(&mut self, mut input: BoxStream<'_, Event>) -> Result<(), ()> {
+    async fn run(self: Box<Self>, mut input: BoxStream<'_, Event>) -> Result<(), ()> {
         use std::time::{Duration, Instant};
 
         let mut buffer = std::collections::HashSet::with_capacity(200);

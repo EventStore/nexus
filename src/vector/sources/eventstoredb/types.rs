@@ -1,9 +1,7 @@
-use metrics::counter;
 use serde::de::{MapAccess, Visitor};
 use serde::{Deserialize, Deserializer};
 use std::collections::BTreeMap;
 use vector::event::{Metric, MetricKind, MetricValue};
-use vector::internal_events::InternalEvent;
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -311,50 +309,5 @@ impl<'de> Visitor<'de> for DriveVisitor {
         }
 
         Err(serde::de::Error::missing_field("<Drive path>"))
-    }
-}
-
-#[derive(Debug)]
-pub struct EventStoreDbMetricsHttpError {
-    pub error: crate::Error,
-}
-
-impl InternalEvent for EventStoreDbMetricsHttpError {
-    fn emit_logs(&self) {
-        error!(message = "HTTP request processing error.", error = ?self.error);
-    }
-
-    fn emit_metrics(&self) {
-        counter!("http_request_errors_total", 1);
-    }
-}
-
-#[derive(Debug)]
-pub struct EventStoreDbStatsParsingError {
-    pub error: serde_json::Error,
-}
-
-impl InternalEvent for EventStoreDbStatsParsingError {
-    fn emit_logs(&self) {
-        error!(message = "JSON parsing error.", error = ?self.error);
-    }
-
-    fn emit_metrics(&self) {
-        counter!("parse_errors_total", 1);
-    }
-}
-
-pub struct EventStoreDbMetricsReceived {
-    pub byte_size: usize,
-}
-
-impl InternalEvent for EventStoreDbMetricsReceived {
-    fn emit_logs(&self) {
-        debug!("Stats scraped.");
-    }
-
-    fn emit_metrics(&self) {
-        counter!("events_in_total", 1);
-        counter!("processed_bytes_total", self.byte_size as u64);
     }
 }
