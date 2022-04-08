@@ -51,7 +51,7 @@ features = [
   # sources
   "sources-file",
   "sources-fluent",
-  "sources-generator",
+  "sources-demo_logs",
   "sources-http",
   "sources-internal_logs",
   "sources-socket",
@@ -69,8 +69,8 @@ features = [
   "sinks-aws_cloudwatch_metrics",
   "sinks-prometheus",
 ]
-git = "https://github.com/vectordotdev/vector.git" # v0.17.3
-rev = "d72c6e75891bc972111c7681fc5d0da44b9a8502"
+git = "https://github.com/vectordotdev/vector.git" # v0.18.1
+rev = "c4adb607fad7f3dce6f3ee1e29525fd7585d0382"
 
 [dev-dependencies]
 tempfile = "3.3.0"
