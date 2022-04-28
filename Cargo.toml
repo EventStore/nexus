@@ -69,8 +69,8 @@ features = [
   "sinks-aws_cloudwatch_metrics",
   "sinks-prometheus",
 ]
-git = "https://github.com/vectordotdev/vector.git" # v0.18.1
-rev = "c4adb607fad7f3dce6f3ee1e29525fd7585d0382"
+git = "https://github.com/vectordotdev/vector.git" # v0.19.3
+rev = "bbd0f88fa88f7d63264e141834cfd7be3b367fb0"
 
 [dev-dependencies]
 tempfile = "3.3.0"
