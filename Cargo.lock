@@ -1196,9 +1196,9 @@ checksum = "f7531096570974c3a9dcf9e4b8e1cede1ec26cf5046219fb3b9d897503b9be59"
 
 [[package]]
 name = "eventstore"
-version = "2.1.0"
+version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "023a2fff13ba0079e79ee102999e32112f3fed20e5b5c0bd64dfff64ab3fdf69"
+checksum = "b739479a8e9a1d7e9ae85d290d8adceb3bf9c86e95b67a7e2e05d2a262f9e75f"
 dependencies = [
  "async-stream",
  "base64 0.13.0",
@@ -5494,7 +5494,7 @@ version = "1.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ee73e6e4924fe940354b8d4d98cad5231175d615cd855b758adc658c0aac6a0"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if 0.1.10",
  "static_assertions",
 ]
 
