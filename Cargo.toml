@@ -16,7 +16,7 @@ panic         = 'abort'
 [dependencies]
 async-trait = "0.1.51"
 chrono = { version = "0.4.19", features = ["serde"] }
-eventstore = "2.1.0"
+eventstore = "2.1"
 futures = "0.3.13"
 http = "0.2"
 hyper = { version = "0.14.10", default-features = false, features = ["stream"] }
