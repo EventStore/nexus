@@ -37,7 +37,8 @@ tokio-stream = { version = "0.1.5", default-features = false, features = [
   "sync",
 ] }
 toml = "0.5.8"
-tracing = "0.1.25"
+tracing = "*"
+tracing-subscriber = "*"
 typetag = "0.1.6"
 
 [dependencies.stackdriver-metrics]
