@@ -2846,6 +2846,7 @@ dependencies = [
  "tokio-stream",
  "toml",
  "tracing 0.1.29",
+ "tracing-subscriber",
  "typetag",
  "vector",
 ]
@@ -5465,9 +5466,11 @@ dependencies = [
  "serde",
  "serde_json",
  "sharded-slab",
+ "smallvec",
  "thread_local",
  "tracing 0.1.29",
  "tracing-core 0.1.21",
+ "tracing-log",
  "tracing-serde",
 ]
 

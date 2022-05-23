@@ -1,3 +1,4 @@
+use tracing_subscriber::{filter::LevelFilter, FmtSubscriber};
 use vector::app::Application;
 use vector::config::SinkDescription;
 use vector::config::SourceDescription;
@@ -34,6 +35,11 @@ pub fn change_log_var() {
          rdkafka={level}",
         level = level
     );
+    let filter = level.as_str().parse::<LevelFilter>().unwrap();
+    let subscriber = FmtSubscriber::builder().with_max_level(filter).finish();
+
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+
     println!("setting log value to {}", log_value);
     std::env::set_var("LOG", log_value);
 }
