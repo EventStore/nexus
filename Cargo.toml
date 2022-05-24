@@ -26,7 +26,6 @@ hyper-openssl = { version = "0.9.1", default-features = false, features = [
 inventory = "0.1.10"
 metrics = { version = "0.16.0", default-features = false, features = ['std'] }
 num_cpus = "1.13.0"
-rand = { version = "*", features = ["small_rng"] }
 regex = "1.5.4"
 serde = { version = "1.0.117", features = ["derive"] }
 serde_json = { version = "1.0.64", features = ["raw_value"] }

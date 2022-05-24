@@ -1,9 +1,8 @@
 use eventstore::operations::{MemberInfo, VNodeState};
 use futures::{stream, FutureExt, SinkExt, StreamExt};
-use rand::{RngCore, SeedableRng};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio_stream::wrappers::IntervalStream;
 use vector::event::{Metric, MetricKind, MetricValue};
 use vector::{
@@ -15,13 +14,13 @@ use vector::{
 pub struct EventStoreDbConfigNew {
     #[serde(default = "default_connection_string")]
     connection_string: String,
-    #[serde(default = "default_scrape_interval_secs")]
-    scrape_interval_secs: u64,
+    #[serde(default = "default_frequency_secs")]
+    frequency_secs: u64,
     default_namespace: Option<String>,
 }
 
-pub fn default_scrape_interval_secs() -> u64 {
-    3
+pub fn default_frequency_secs() -> u64 {
+    2
 }
 
 pub fn default_connection_string() -> String {
@@ -61,22 +60,30 @@ fn source(
     let mut out = cx
         .out
         .sink_map_err(|error| error!(message = "Error sending metric.", %error));
-    let mut ticks = IntervalStream::new(tokio::time::interval(Duration::from_secs(
-        config.scrape_interval_secs,
-    )))
-    .take_until(cx.shutdown);
+
+    let mut ticks = IntervalStream::new(tokio::time::interval(Duration::from_millis(500)))
+        .take_until(cx.shutdown);
 
     let namespace = config
         .default_namespace
         .clone()
         .unwrap_or_else(|| "eventstoredb".to_string());
 
+    let frequency = Duration::from_secs(config.frequency_secs);
+
     Ok(Box::pin(
         async move {
             let mut epoch_number = None;
-            let mut gen = rand::rngs::SmallRng::from_entropy();
+            let mut leader_writer_checkpoint: Option<i64> = None;
+            let mut clock = Instant::now();
 
             while ticks.next().await.is_some() {
+                if clock.elapsed() < frequency {
+                    continue;
+                }
+
+                clock = Instant::now();
+
                 match client.read_gossip().await {
                     Err(error) => {
                         tracing::error!(target: "eventstoredb_nexus_cluster_metrics", "{}", error)
@@ -91,23 +98,10 @@ fn source(
                             .filter(|m| m.state == VNodeState::Leader)
                             .collect::<Vec<&MemberInfo>>();
 
-                        if leaders.is_empty() {
-                            metrics.push(
-                                Metric::new(
-                                    "leader_mismatches",
-                                    MetricKind::Incremental,
-                                    MetricValue::Counter { value: 1.0 },
-                                )
-                                .with_namespace(Some(namespace.clone()))
-                                .with_tags(Some(tags.clone()))
-                                .with_timestamp(Some(now)),
-                            );
-                        }
-
                         if dead_count > 0 {
                             metrics.push(
                                 Metric::new(
-                                    "dead_nodes",
+                                    "unresponsive_nodes",
                                     MetricKind::Incremental,
                                     MetricValue::Counter {
                                         value: dead_count as f64,
@@ -119,12 +113,23 @@ fn source(
                             );
                         }
 
-                        let current_epoch_number = if leaders.len() == 1 {
-                            leaders[0].epoch_number
-                        } else {
-                            let idx = gen.next_u32() % members.len() as u32;
-                            members[idx as usize].epoch_number
-                        };
+                        if leaders.len() != 1 {
+                            metrics.push(
+                                Metric::new(
+                                    "leader_mismatches",
+                                    MetricKind::Incremental,
+                                    MetricValue::Counter { value: 1.0 },
+                                )
+                                .with_namespace(Some(namespace.clone()))
+                                .with_tags(Some(tags.clone()))
+                                .with_timestamp(Some(now)),
+                            );
+
+                            continue;
+                        }
+
+                        let current_epoch_number = leaders[0].epoch_number;
+                        let current_leader_writer_checkpoint = leaders[0].writer_checkpoint;
 
                         if let Some(epoch_number) = epoch_number.as_mut() {
                             if current_epoch_number != *epoch_number {
@@ -143,6 +148,83 @@ fn source(
                             }
                         } else {
                             epoch_number = Some(current_epoch_number);
+                        }
+
+                        if let Some(leader_writer_checkpoint) = leader_writer_checkpoint.as_mut() {
+                            if *leader_writer_checkpoint > current_leader_writer_checkpoint {
+                                metrics.push(
+                                    Metric::new(
+                                        "truncations",
+                                        MetricKind::Incremental,
+                                        MetricValue::Counter { value: 1.0 },
+                                    )
+                                    .with_namespace(Some(namespace.clone()))
+                                    .with_tags(Some(tags.clone()))
+                                    .with_timestamp(Some(now)),
+                                );
+
+                                metrics.push(
+                                    Metric::new(
+                                        "leader_mismatches",
+                                        MetricKind::Incremental,
+                                        MetricValue::Counter { value: 1.0 },
+                                    )
+                                    .with_namespace(Some(namespace.clone()))
+                                    .with_tags(Some(tags.clone()))
+                                    .with_timestamp(Some(now)),
+                                );
+                            }
+
+                            let out_of_sync_count = members
+                                .iter()
+                                .filter(|m| m.state == VNodeState::Follower)
+                                .filter(|m| m.writer_checkpoint < *leader_writer_checkpoint)
+                                .count();
+
+                            if out_of_sync_count > 1 {
+                                metrics.push(
+                                    Metric::new(
+                                        "out_of_sync",
+                                        MetricKind::Incremental,
+                                        MetricValue::Counter { value: 1.0 },
+                                    )
+                                    .with_namespace(Some(namespace.clone()))
+                                    .with_tags(Some(tags.clone()))
+                                    .with_timestamp(Some(now)),
+                                );
+                            }
+                        }
+
+                        leader_writer_checkpoint = Some(current_leader_writer_checkpoint);
+
+                        if let Some(epoch_number) = epoch_number.as_ref() {
+                            metrics.push(
+                                Metric::new(
+                                    "leader_epoch_number",
+                                    MetricKind::Absolute,
+                                    MetricValue::Gauge {
+                                        value: *epoch_number as f64,
+                                    },
+                                )
+                                .with_namespace(Some(namespace.clone()))
+                                .with_tags(Some(tags.clone()))
+                                .with_timestamp(Some(now)),
+                            );
+                        }
+
+                        if let Some(writer_checkpoint) = leader_writer_checkpoint.as_ref() {
+                            metrics.push(
+                                Metric::new(
+                                    "leader_writer_checkpoint",
+                                    MetricKind::Absolute,
+                                    MetricValue::Gauge {
+                                        value: *writer_checkpoint as f64,
+                                    },
+                                )
+                                .with_namespace(Some(namespace.clone()))
+                                .with_tags(Some(tags.clone()))
+                                .with_timestamp(Some(now)),
+                            );
                         }
 
                         if metrics.is_empty() {
