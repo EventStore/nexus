@@ -98,6 +98,45 @@ fn source(
                             .filter(|m| m.state == VNodeState::Leader)
                             .collect::<Vec<&MemberInfo>>();
 
+                        for member in members.iter() {
+                            let mut member_tags = tags.clone();
+                            let endpoint = &member.http_end_point;
+
+                            member_tags.insert(
+                                "member".to_string(),
+                                format!("{}:{}", endpoint.host.as_str(), endpoint.port),
+                            );
+
+                            member_tags
+                                .insert("instance_id".to_string(), member.instance_id.to_string());
+
+                            metrics.push(
+                                Metric::new(
+                                    "epoch_number",
+                                    MetricKind::Absolute,
+                                    MetricValue::Gauge {
+                                        value: member.epoch_number as f64,
+                                    },
+                                )
+                                .with_namespace(Some(namespace.clone()))
+                                .with_tags(Some(member_tags.clone()))
+                                .with_timestamp(Some(now)),
+                            );
+
+                            metrics.push(
+                                Metric::new(
+                                    "writer_checkpoint",
+                                    MetricKind::Absolute,
+                                    MetricValue::Gauge {
+                                        value: member.writer_checkpoint as f64,
+                                    },
+                                )
+                                .with_namespace(Some(namespace.clone()))
+                                .with_tags(Some(member_tags))
+                                .with_timestamp(Some(now)),
+                            );
+                        }
+
                         if dead_count > 0 {
                             metrics.push(
                                 Metric::new(
