@@ -41,8 +41,8 @@ tracing-subscriber = "*"
 typetag = "0.1.6"
 
 [dependencies.stackdriver-metrics]
-git = "https://github.com/TimSimpson/stackdriver-metrics-rs.git"
-rev = "3c31fb868b66112d02b9e37d0235662fe92d7bc9"
+git = "https://github.com/YoEight/stackdriver-metrics-rs.git"
+rev = "21c076b0ed20ab6eaac3f83e0dd3abc7bd9594c2"
 
 [dependencies.vector]
 default-features = false
