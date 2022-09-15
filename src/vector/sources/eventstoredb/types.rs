@@ -100,11 +100,11 @@ impl Stats {
 
         for queue in self.es.queues.iter() {
             let mut queue_tags = tags.clone();
-
+            let type_suffix = queue_name_type_suffix(queue.name.as_str());
             queue_tags.insert("name".to_string(), queue.name.clone());
             result.push(
                 Metric::new(
-                    "queue_length",
+                    format!("queue_length_{}", type_suffix),
                     MetricKind::Absolute,
                     MetricValue::Gauge {
                         value: queue.length as f64,
@@ -117,7 +117,7 @@ impl Stats {
 
             result.push(
                 Metric::new(
-                    "queue_avg_processing_time",
+                    format!("queue_avg_processing_time_{}", type_suffix),
                     MetricKind::Absolute,
                     MetricValue::Gauge {
                         value: queue.avg_processing_time,
@@ -174,6 +174,10 @@ impl Stats {
 
         result
     }
+}
+
+fn queue_name_type_suffix(name: &str) -> String {
+    name.replace(' ', "_").replace('#', "_")
 }
 
 #[derive(Deserialize, Debug)]
