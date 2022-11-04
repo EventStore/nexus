@@ -22,7 +22,7 @@ impl Stats {
 
         result.push(
             Metric::new(
-                "memory_usage",
+                "process_memory_used_bytes",
                 MetricKind::Absolute,
                 MetricValue::Gauge {
                     value: self.proc.mem as f64,
