@@ -70,6 +70,7 @@ features = [
   "sinks-vector",
   "sinks-aws_cloudwatch_metrics",
   "sinks-prometheus",
+  "sinks-loki",
 ]
 git = "https://github.com/vectordotdev/vector.git" # v0.19.3
 rev = "bbd0f88fa88f7d63264e141834cfd7be3b367fb0"
