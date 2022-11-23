@@ -4670,7 +4670,7 @@ checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 [[package]]
 name = "stackdriver-metrics"
 version = "0.1.0"
-source = "git+https://github.com/YoEight/stackdriver-metrics-rs.git?rev=21c076b0ed20ab6eaac3f83e0dd3abc7bd9594c2#21c076b0ed20ab6eaac3f83e0dd3abc7bd9594c2"
+source = "git+https://github.com/YoEight/stackdriver-metrics-rs.git?rev=a0aec284659d1c1f7a86d4200dae30ee0e922be3#a0aec284659d1c1f7a86d4200dae30ee0e922be3"
 dependencies = [
  "chrono",
  "futures 0.3.19",
