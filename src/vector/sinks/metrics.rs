@@ -58,7 +58,6 @@ impl MetricSink {
 struct Params {
     default_namespace: String,
     resource: GcpTypedResource,
-    started: chrono::DateTime<chrono::Utc>,
 }
 
 fn convert_event(params: &Params, event: Event) -> Option<stackdriver_metrics::TimeSeries> {
@@ -83,31 +82,22 @@ fn convert_event(params: &Params, event: Event) -> Option<stackdriver_metrics::T
         .into_iter()
         .collect::<std::collections::HashMap<_, _>>();
 
-    let end_time = metric.data().timestamp.unwrap_or_else(chrono::Utc::now);
+    let created = metric.data().timestamp.unwrap_or_else(chrono::Utc::now);
 
-    let (point_value, interval, metric_kind) = match &metric.data().value {
-        &MetricValue::Counter { value } => {
-            let interval = stackdriver_metrics::Interval {
-                start_time: Some(params.started),
-                end_time,
-            };
+    let (point_value, metric_kind) = match &metric.data().value {
+        &MetricValue::Counter { value } => (value, stackdriver_metrics::MetricKind::Cumulative),
 
-            (value, interval, stackdriver_metrics::MetricKind::Cumulative)
-        }
-
-        &MetricValue::Gauge { value } => {
-            let interval = stackdriver_metrics::Interval {
-                start_time: None,
-                end_time,
-            };
-
-            (value, interval, stackdriver_metrics::MetricKind::Gauge)
-        }
+        &MetricValue::Gauge { value } => (value, stackdriver_metrics::MetricKind::Gauge),
 
         not_supported => {
             warn!("Unsupported metric type {:?}", not_supported);
             return None;
         }
+    };
+
+    let value_type = match metric_kind {
+        stackdriver_metrics::MetricKind::Gauge => stackdriver_metrics::ValueType::Double,
+        stackdriver_metrics::MetricKind::Cumulative => stackdriver_metrics::ValueType::Int64,
     };
 
     let time_series = stackdriver_metrics::TimeSeries {
@@ -122,13 +112,11 @@ fn convert_event(params: &Params, event: Event) -> Option<stackdriver_metrics::T
         },
 
         metric_kind,
-        value_type: stackdriver_metrics::ValueType::Int64,
+        value_type,
 
         points: stackdriver_metrics::Point {
-            interval,
-            value: stackdriver_metrics::PointValue {
-                int64_value: point_value as i64,
-            },
+            created,
+            value: point_value,
         },
     };
 
@@ -146,7 +134,6 @@ impl StreamSink for MetricSink {
         let params = Params {
             default_namespace: self.namespace.clone(),
             resource: self.resource.clone(),
-            started: chrono::Utc::now(),
         };
 
         let stream =

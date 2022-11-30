@@ -42,7 +42,7 @@ typetag = "0.1.6"
 
 [dependencies.stackdriver-metrics]
 git = "https://github.com/YoEight/stackdriver-metrics-rs.git"
-rev = "21c076b0ed20ab6eaac3f83e0dd3abc7bd9594c2"
+rev = "a0aec284659d1c1f7a86d4200dae30ee0e922be3"
 
 [dependencies.vector]
 default-features = false
